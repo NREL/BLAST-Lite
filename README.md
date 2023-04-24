@@ -4,6 +4,15 @@ Battery Lifetime Analysis and Simulation Toolsuite (BLAST) provides a library of
 
 ![Example battery life predictions](example_battery_life.png)
 
+## Caveats
+These battery models predict 'expected life', that is, battery life under nominal conditions. Many types of battery failure will not be predicted by these models:
+- Overcharge or overdischarge
+- Impact of physical damage, vibration, or humidity
+- Operating outside of manufacturer performance and environmental limits, such as voltage, temperature, and charge/discharge rate limits
+- Pack performance loss due to cell-to-cell inbalance
+Aging models are generally trained on a limited amount of data, that is, there is not enough information to estimate cell-to-cell variability in degradation rates.
+Battery 'warranty life' is generally much more conservative than 'expected life'.
+
 ## Citations:
  - Sony Murata LFP-Gr battery aging data and model
      - [Calendar aging data source](https://doi.org/10.1016/j.est.2018.01.019)
