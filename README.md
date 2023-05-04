@@ -31,4 +31,7 @@ Battery 'warranty life' is generally much more conservative than 'expected life'
  - Stationary storage battery use profiles are [provided open-source](https://dataserv.ub.tum.de/index.php/s/m1510254) by [Kucevic et al](https://www.sciencedirect.com/science/article/pii/S2352152X19309016)
   - Electric vehicle battery use profiles were generated using NREL's [FASTSim tool](https://www.nrel.gov/transportation/fastsim.html).
 
+## Authors
+Paul Gasper, Kandler Smith
+
 NREL SWR-22-69
