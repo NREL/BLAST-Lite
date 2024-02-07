@@ -6,8 +6,8 @@
 # I'm not aware of any study conducting both calendar aging and cycle aging of these cells.
 
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state
+from BLAST_Lite.functions.extract_stressors import extract_stressors
+from BLAST_Lite.functions.state_functions import update_power_state
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging widely varied SOC at 25, 40, and 50 Celsius. 300 days max.
@@ -27,7 +27,7 @@ from functions.state_functions import update_power_state
 
 class Nca_Gr_Panasonic3Ah_Battery:
 
-    def __init__(self):
+    def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -58,6 +58,19 @@ class Nca_Gr_Panasonic3Ah_Battery:
             'k_cal': np.array([np.nan]),
             'k_cyc': np.array([np.nan]),
         }
+
+        # Expermental range: details on the range of experimental conditions, i.e.,
+        # the range we expect the model to be valid in
+        self.experimental_range = {
+            'cycling_temperature': [15, 35],
+            'dod': [0.8, 1],
+            'soc': [0, 1],
+            'max_rate_charge': 0.5,
+            'max_rate_discharge': 2,
+        }
+
+        # Degradation scalar - scales all state changes by a coefficient
+        self._degradation_scalar = degradation_scalar
 
     # Nominal capacity
     @property
@@ -132,8 +145,8 @@ class Nca_Gr_Panasonic3Ah_Battery:
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = update_power_state(states['qLoss_t'][-1], delta_t_days, k_cal, p['qcal_p'])
-        dq_EFC = update_power_state(states['qLoss_EFC'][-1], delta_efc, k_cyc, p['qcyc_p'])
+        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, k_cal, p['qcal_p'])
+        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, k_cyc, p['qcyc_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

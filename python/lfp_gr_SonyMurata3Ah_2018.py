@@ -1,7 +1,7 @@
 # Paul Gasper, NREL
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_B_state, update_sigmoid_state
+from BLAST_Lite.functions.extract_stressors import extract_stressors
+from BLAST_Lite.functions.state_functions import update_power_B_state, update_sigmoid_state
 import scipy.stats as stats
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -44,7 +44,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery:
     #   k_ref_r_cal: rate of resistance growth due to calendar degradation
     #   A_r_cyc: rate of resistance growth due to cycling degradation
 
-    def __init__(self):
+    def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_LLI_t': np.array([0]),
@@ -87,6 +87,19 @@ class Lfp_Gr_SonyMurata3Ah_Battery:
             'r_kcal': np.array([np.nan]),
             'r_kcyc': np.array([np.nan]),
         }
+
+        # Expermental range: details on the range of experimental conditions, i.e.,
+        # the range we expect the model to be valid in
+        self.experimental_range = {
+            'cycling_temperature': [20, 40],
+            'dod': [0.8, 1],
+            'soc': [0, 1],
+            'max_rate_charge': 1,
+            'max_rate_discharge': 2,
+        }
+
+        # Degradation scalar - scales all state changes by a coefficient
+        self._degradation_scalar = degradation_scalar
 
     # Nominal capacity
     @property
@@ -212,16 +225,16 @@ class Lfp_Gr_SonyMurata3Ah_Battery:
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_LLI_t = update_sigmoid_state(states['qLoss_LLI_t'][-1], delta_t_days, q1, p['q2'], q3)
-        dq_LLI_EFC = update_power_B_state(states['qLoss_LLI_EFC'][-1], delta_efc, q5, p['q6'])
+        dq_LLI_t = self._degradation_scalar * update_sigmoid_state(states['qLoss_LLI_t'][-1], delta_t_days, q1, p['q2'], q3)
+        dq_LLI_EFC = self._degradation_scalar * update_power_B_state(states['qLoss_LLI_EFC'][-1], delta_efc, q5, p['q6'])
         if delta_efc / delta_t_days > 2: # only evalaute if more than 2 full cycles per day
-            dq_BreakIn_EFC = update_sigmoid_state(states['qLoss_BreakIn_EFC'][-1], delta_efc, q7, p['q8'], p['q9'])
+            dq_BreakIn_EFC = self._degradation_scalar * update_sigmoid_state(states['qLoss_BreakIn_EFC'][-1], delta_efc, q7, p['q8'], p['q9'])
         else:
             dq_BreakIn_EFC = 0
 
         # Resistance
-        dr_LLI_t = k_temp_r_cal * k_soc_r_cal * delta_t_secs
-        dr_LLI_EFC = k_Crate_r_cyc * k_dod_r_cyc * delta_efc / 100
+        dr_LLI_t = self._degradation_scalar * k_temp_r_cal * k_soc_r_cal * delta_t_secs
+        dr_LLI_EFC = self._degradation_scalar * k_Crate_r_cyc * k_dod_r_cyc * delta_efc / 100
 
         # Accumulate and store states
         dx = np.array([dq_LLI_t, dq_LLI_EFC, dq_BreakIn_EFC, dr_LLI_t, dr_LLI_EFC])

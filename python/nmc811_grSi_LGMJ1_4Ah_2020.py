@@ -4,8 +4,8 @@
 # Cell tests were reported in early 2020, so likely 2018 or 2019 LG MJ1 cells.
 
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state
+from BLAST_Lite.functions.extract_stressors import extract_stressors
+from BLAST_Lite.functions.state_functions import update_power_state
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging varied SOC (10%, 70%, 90%) and temperature.
@@ -24,7 +24,7 @@ from functions.state_functions import update_power_state
 
 class Nmc811_GrSi_LGMJ1_4Ah_Battery:
 
-    def __init__(self):
+    def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -56,6 +56,19 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery:
             'k_cyc': np.array([np.nan]),
         }
 
+        # Expermental range: details on the range of experimental conditions, i.e.,
+        # the range we expect the model to be valid in
+        self.experimental_range = {
+            'cycling_temperature': [0, 50],
+            'dod': [0.2, 0.8],
+            'soc': [0.1, 0.9],
+            'max_rate_charge': 1,
+            'max_rate_discharge': 3,
+        }
+
+        # Degradation scalar - scales all state changes by a coefficient
+        self._degradation_scalar = degradation_scalar
+
     # Nominal capacity
     @property
     def _cap(self):
@@ -77,7 +90,7 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery:
             'qcyc_E': 1.14e+04,
             'qcyc_p': 0.695,
         }
-        
+
     # Battery model
     def update_battery_state(self, t_secs, soc, T_celsius):
         # Update the battery states, based both on the degradation state as well as the battery performance
@@ -129,8 +142,8 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery:
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = update_power_state(states['qLoss_t'][-1], delta_t_days, k_cal, p['qcal_p'])
-        dq_EFC = update_power_state(states['qLoss_EFC'][-1], delta_efc, k_cyc, p['qcyc_p'])
+        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, k_cal, p['qcal_p'])
+        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, k_cyc, p['qcyc_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

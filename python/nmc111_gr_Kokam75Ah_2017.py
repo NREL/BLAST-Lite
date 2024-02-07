@@ -1,7 +1,7 @@
 # Paul Gasper, NREL
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state, update_sigmoid_state
+from BLAST_Lite.functions.extract_stressors import extract_stressors
+from BLAST_Lite.functions.state_functions import update_power_state, update_sigmoid_state
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Aging test matrix varied primarly temperature, with small DOD variation.
@@ -41,7 +41,7 @@ class Nmc111_Gr_Kokam75Ah_Battery:
     #   Calendar resistance growth rate (LLI), relative to capacity loss rate: r1
     #   Cycling resistance growth rate (LLI), relative to capacity loss rate: r3
 
-    def __init__(self):
+    def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_LLI_t': np.array([0]),   # relative Li inventory change, time dependent (SEI)
@@ -83,6 +83,19 @@ class Nmc111_Gr_Kokam75Ah_Battery:
             'q3': np.array([np.nan]),
             'q5': np.array([np.nan]),
         }
+
+        # Expermental range: details on the range of experimental conditions, i.e.,
+        # the range we expect the model to be valid in
+        self.experimental_range = {
+            'cycling_temperature': [0, 45],
+            'dod': [0.8, 1],
+            'soc': [0, 1],
+            'max_rate_charge': 1,
+            'max_rate_discharge': 1,
+        }
+
+        # Degradation scalar - scales all state changes by a coefficient
+        self._degradation_scalar = degradation_scalar
     
     # Nominal capacity
     @property
@@ -165,13 +178,13 @@ class Nmc111_Gr_Kokam75Ah_Battery:
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_LLI_t = update_power_state(states['qLoss_LLI_t'][-1], delta_t_days, 2*q1, p['q2'])
-        dq_LLI_EFC = update_power_state(states['qLoss_LLI_EFC'][-1], delta_efc, q3, p['q4'])
-        dq_LAM = update_sigmoid_state(states['qLoss_LAM'][-1], delta_efc, 1, 1/q5, p['p_LAM'])
+        dq_LLI_t = self._degradation_scalar * update_power_state(states['qLoss_LLI_t'][-1], delta_t_days, 2*q1, p['q2'])
+        dq_LLI_EFC = self._degradation_scalar * update_power_state(states['qLoss_LLI_EFC'][-1], delta_efc, q3, p['q4'])
+        dq_LAM = self._degradation_scalar * update_sigmoid_state(states['qLoss_LAM'][-1], delta_efc, 1, 1/q5, p['p_LAM'])
         
         # Resistance
-        dr_LLI_t = update_power_state(states['rGain_LLI_t'][-1], delta_t_days, p['r1']*q1, p['r2'])
-        dr_LLI_EFC = update_power_state(states['rGain_LLI_EFC'][-1], delta_efc, p['r3']*q3, p['r4'])
+        dr_LLI_t = self._degradation_scalar * update_power_state(states['rGain_LLI_t'][-1], delta_t_days, p['r1']*q1, p['r2'])
+        dr_LLI_EFC = self._degradation_scalar * update_power_state(states['rGain_LLI_EFC'][-1], delta_efc, p['r3']*q3, p['r4'])
 
         # Accumulate and store states
         dx = np.array([dq_LLI_t, dq_LLI_EFC, dq_LAM, dr_LLI_t, dr_LLI_EFC])

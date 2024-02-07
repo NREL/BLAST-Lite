@@ -3,8 +3,8 @@
 # http://dx.doi.org/10.1016/j.jpowsour.2014.02.012
 
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state
+from BLAST_Lite.functions.extract_stressors import extract_stressors
+from BLAST_Lite.functions.state_functions import update_power_state
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging varied SOC at 50 Celsius, and temperature at 50% state-of-charge.
@@ -31,7 +31,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery:
     # Voltage lookup table here use data from Ecker et al for 0/10% SOC, and other values were extracted
     # from Figure 1 in Schmalsteig et al using WebPlotDigitizer.
 
-    def __init__(self):
+    def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -69,6 +69,19 @@ class Nmc111_Gr_Sanyo2Ah_Battery:
             'r_alpha': np.array([np.nan]),
             'r_beta': np.array([np.nan]),
         }
+
+        # Expermental range: details on the range of experimental conditions, i.e.,
+        # the range we expect the model to be valid in
+        self.experimental_range = {
+            'cycling_temperature': [20, 40],
+            'dod': [0, 1],
+            'soc': [0, 1],
+            'max_rate_charge': 1,
+            'max_rate_discharge': 1,
+        }
+
+        # Degradation scalar - scales all state changes by a coefficient
+        self._degradation_scalar = degradation_scalar
 
     # Nominal capacity
     @property
@@ -177,11 +190,11 @@ class Nmc111_Gr_Sanyo2Ah_Battery:
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = update_power_state(states['qLoss_t'][-1], delta_t_days, alpha_cap, p['qcal_p'])
-        dq_EFC = update_power_state(states['qLoss_EFC'][-1], Ah_throughput, beta_cap, p['qcyc_p'])
+        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, alpha_cap, p['qcal_p'])
+        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], Ah_throughput, beta_cap, p['qcyc_p'])
         # Resistance
-        dr_t = update_power_state(states['rGain_t'][-1], delta_t_days, alpha_res, p['rcal_p'])
-        dr_EFC = beta_res * Ah_throughput
+        dr_t = self._degradation_scalar * update_power_state(states['rGain_t'][-1], delta_t_days, alpha_res, p['rcal_p'])
+        dr_EFC = self._degradation_scalar * beta_res * Ah_throughput
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC, dr_t, dr_EFC])
