@@ -1,7 +1,7 @@
 # Paul Gasper, NREL
 import numpy as np
-from BLAST_Lite.functions.extract_stressors import extract_stressors
-from BLAST_Lite.functions.state_functions import update_power_B_state, update_sigmoid_state
+from functions.extract_stressors import extract_stressors
+from functions.state_functions import update_power_B_state, update_sigmoid_state
 import scipy.stats as stats
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -146,7 +146,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery:
     # Battery model
     def update_battery_state(self, t_secs, soc, T_celsius):
         # Update the battery states, based both on the degradation state as well as the battery performance
-        # at the ambient temperature, T_celsius
+        # at the ambient temperature, T_celsius. This function assumes battery load is changing all the time.
         # Inputs:
             #   t_secs (ndarry): vector of the time in seconds since beginning of life for the soc_timeseries data points
             #   soc (ndarry): vector of the state-of-charge of the battery at each t_sec
@@ -161,21 +161,56 @@ class Lfp_Gr_SonyMurata3Ah_Battery:
             raise TypeError('Input "T_celsius" must be a numpy.ndarray')
         if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
             raise ValueError('All input timeseries must be the same length')
+        
+        stressors = extract_stressors(t_secs, soc, T_celsius)
+        # Unpack and store some stressors for debugging or plotting
+        delta_t_days = stressors["delta_t_days"]
+        delta_efc = stressors["delta_efc"]
+        TdegK = stressors["TdegK"]
+        soc = stressors["soc"]
+        Ua = stressors["Ua"]
+        dod = stressors["dod"]
+        Crate = stressors["Crate"]
+        t_days = self.stressors['t_days'][-1] + delta_t_days
+        efc = self.stressors['efc'][-1] + delta_efc
+        stressors_norm = np.array([delta_t_days, t_days, delta_efc, efc, np.mean(TdegK), np.mean(soc), np.mean(Ua), dod, Crate])
+        for k, v in zip(self.stressors.keys(), stressors_norm):
+            self.stressors[k] = np.append(self.stressors[k], v)
+            
+        self.__update_rates(stressors)
+        self.__update_states(stressors)
+        self.__update_outputs()
 
-        self.__update_states(t_secs, soc, T_celsius)
+    def update_battery_state_repeating(self):
+        # Update the battery states, based both on the degradation state as well as the battery performance
+        # at the ambient temperature, T_celsius. This function assumes battery load is repeating, i.e., stressors and
+        # degradation rates are unchanging for every timestep, and don't need to be calculated again
+        
+        # Just accumulate the cumulative stressors (total time, charge throughput in units of EFCs)
+        self.stressors['t_days'] = np.append(self.stressors['t_days'], self.stressors['t_days'][-1] + self.stressors['delta_t_days'][-1])
+        self.stressors['efc'] = np.append(self.stressors['efc'], self.stressors['efc'][-1] + self.stressors['delta_efc'][-1])
+
+        # copy end values of old stressors into a dict
+        stressors = {}
+        for k, v in zip(self.stressors.keys(), self.stressors.values()):
+            stressors[k] = v[-1]
+
+        self.__update_states(stressors)
         self.__update_outputs()
     
-    def __update_states(self, t_secs, soc, T_celsius):
-        # Update the battery states, based both on the degradation state as well as the battery performance
-        # at the ambient temperature, T_celsius
+    def __update_rates(self, stressors):
+        # Calculate and update battery degradation rates based on stressor values
         # Inputs:
-            #   t_secs (ndarry): vector of the time in seconds since beginning of life for the soc_timeseries data points
-            #   soc (ndarry): vector of the state-of-charge of the battery at each t_sec
-            #   T_celsius (ndarray): the temperature of the battery during this time period, in Celsius units.
-            
-        # Extract stressors
+        #   stressors (dict): output from extract_stressors
+
+        # Unpack stressors
+        t_secs = stressors["t_secs"]
         delta_t_secs = t_secs[-1] - t_secs[0]
-        delta_t_days, delta_efc, TdegK, soc, Ua, dod, Crate, cycles = extract_stressors(t_secs, soc, T_celsius)
+        TdegK = stressors["TdegK"]
+        soc = stressors["soc"]
+        Ua = stressors["Ua"]
+        dod = stressors["dod"]
+        Crate = stressors["Crate"]
         
         # Grab parameters
         p = self._params_life
@@ -215,49 +250,60 @@ class Lfp_Gr_SonyMurata3Ah_Battery:
         # Calculate time based average of each rate
         q1 = np.trapz(q1, x=t_secs) / delta_t_secs
         q3 = np.trapz(q3, x=t_secs) / delta_t_secs
-        #q5 = np.trapz(q5, x=t_secs) / delta_t_secs # no time varying inputs
-        q7 = np.trapz(q7, x=t_secs) / delta_t_secs # no time varying inputs
+        # q5 = np.trapz(q5, x=t_secs) / delta_t_secs # no time varying inputs
+        q7 = np.trapz(q7, x=t_secs) / delta_t_secs
         k_temp_r_cal = np.trapz(k_temp_r_cal, x=t_secs) / delta_t_secs
-        k_soc_r_cal = np.trapz(k_soc_r_cal, x=t_secs) / delta_t_secs # no time varying inputs
-        #k_Crate_r_cyc = np.trapz(k_Crate_r_cyc, x=t_secs) / delta_t_secs # no time varying inputs
-        #k_dod_r_cyc = np.trapz(k_dod_r_cyc, x=t_secs) / delta_t_secs # no time varying inputs
- 
-        # Calculate incremental state changes
-        states = self.states
-        # Capacity
-        dq_LLI_t = self._degradation_scalar * update_sigmoid_state(states['qLoss_LLI_t'][-1], delta_t_days, q1, p['q2'], q3)
-        dq_LLI_EFC = self._degradation_scalar * update_power_B_state(states['qLoss_LLI_EFC'][-1], delta_efc, q5, p['q6'])
-        if delta_efc / delta_t_days > 2: # only evalaute if more than 2 full cycles per day
-            dq_BreakIn_EFC = self._degradation_scalar * update_sigmoid_state(states['qLoss_BreakIn_EFC'][-1], delta_efc, q7, p['q8'], p['q9'])
-        else:
-            dq_BreakIn_EFC = 0
-
-        # Resistance
-        dr_LLI_t = self._degradation_scalar * k_temp_r_cal * k_soc_r_cal * delta_t_secs
-        dr_LLI_EFC = self._degradation_scalar * k_Crate_r_cyc * k_dod_r_cyc * delta_efc / 100
-
-        # Accumulate and store states
-        dx = np.array([dq_LLI_t, dq_LLI_EFC, dq_BreakIn_EFC, dr_LLI_t, dr_LLI_EFC])
-        for k, v in zip(states.keys(), dx):
-            x = self.states[k][-1] + v
-            self.states[k] = np.append(self.states[k], x)
-        
-        # Store stressors
-        t_days = self.stressors['t_days'][-1] + delta_t_days
-        efc = self.stressors['efc'][-1] + delta_efc
-        stressors = np.array([delta_t_days, t_days, delta_efc, efc, np.mean(TdegK), np.mean(soc), np.mean(Ua), dod, Crate])
-        for k, v in zip(self.stressors.keys(), stressors):
-            self.stressors[k] = np.append(self.stressors[k], v)
+        k_soc_r_cal = np.trapz(k_soc_r_cal, x=t_secs) / delta_t_secs
+        # k_Crate_r_cyc = np.trapz(k_Crate_r_cyc, x=t_secs) / delta_t_secs # no time varying inputs
+        # k_dod_r_cyc = np.trapz(k_dod_r_cyc, x=t_secs) / delta_t_secs # no time varying inputs
 
         # Store rates
         rates = np.array([q1, q3, q5, q7, k_temp_r_cal * k_soc_r_cal, k_Crate_r_cyc * k_dod_r_cyc])
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
     
+    def __update_states(self, stressors):
+        # Update the battery states, based both on the degradation state as well as the battery performance
+        # at the ambient temperature, T_celsius
+        # Inputs:
+            #   stressors (dict): output from extract_stressors
+            
+        # Unpack stressors
+        delta_t_days = stressors["delta_t_days"]
+        delta_efc = stressors["delta_efc"]
+        
+        # Grab parameters
+        p = self._params_life
+
+        # Grab rates, only keep most recent value
+        r = self.rates.copy()
+        for k, v in zip(r.keys(), r.values()):
+            r[k] = v[-1]
+
+        # Calculate incremental state changes
+        states = self.states
+
+        # Capacity
+        dq_LLI_t = self._degradation_scalar * update_sigmoid_state(states['qLoss_LLI_t'][-1], delta_t_days, r['q1'], p['q2'], r['q3'])
+        dq_LLI_EFC = self._degradation_scalar * update_power_B_state(states['qLoss_LLI_EFC'][-1], delta_efc, r['q5'], p['q6'])
+        if delta_efc / delta_t_days > 1.5: # only evalaute if more than 1.5 full cycles per day
+            dq_BreakIn_EFC = self._degradation_scalar * update_sigmoid_state(states['qLoss_BreakIn_EFC'][-1], delta_efc, r['q7'], p['q8'], p['q9'])
+        else:
+            dq_BreakIn_EFC = 0
+
+        # Resistance
+        dr_LLI_t = self._degradation_scalar * r['r_kcal'] * delta_t_days * 86400
+        dr_LLI_EFC = self._degradation_scalar * r['r_kcyc'] * delta_efc / 100
+
+        # Accumulate and store states
+        dx = np.array([dq_LLI_t, dq_LLI_EFC, dq_BreakIn_EFC, dr_LLI_t, dr_LLI_EFC])
+        for k, v in zip(states.keys(), dx):
+            x = self.states[k][-1] + v
+            self.states[k] = np.append(self.states[k], x)
+    
     def __update_outputs(self):
         # Calculate outputs, based on current battery state
         states = self.states
-        p = self._params_life
 
         # Capacity
         q_LLI_t = 1 - states['qLoss_LLI_t'][-1]

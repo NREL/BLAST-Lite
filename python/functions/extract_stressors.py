@@ -29,4 +29,16 @@ def extract_stressors(t_secs, soc, T_celsius):
     cycles = rainflow.count_cycles(soc)
     cycles = sum(i for _, i in cycles)
 
-    return delta_t_days, delta_efc, T_kelvin, soc, Ua, dod, Crate, cycles
+    stressors = {
+        't_secs': t_secs,
+        'delta_t_days': delta_t_days,
+        'delta_efc': delta_efc,
+        'TdegK': T_kelvin,
+        'soc': soc,
+        'dod': dod,
+        'Ua': Ua,
+        'Crate': Crate,
+        'cycles': cycles
+    }
+
+    return stressors
