@@ -20,8 +20,8 @@ Battery 'warranty life' is generally much more conservative than 'expected life'
      - [Cycle aging data source](https://doi.org/10.1016/j.jpowsour.2019.227666)
      - [Model identification source](https://doi.org/10.1149/1945-7111/ac86a8)
  - Nissan Leaf LMO-Gr (2nd life cells) battery aging data
-     - [Calendar aging data source] (https://doi.org/10.1109/EEEIC/ICPSEUROPE54979.2022.9854784)
-     - [Cycle aging data source] (https://doi.org/10.1016/j.est.2020.101695)
+     - [Calendar aging data source](https://doi.org/10.1109/EEEIC/ICPSEUROPE54979.2022.9854784)
+     - [Cycle aging data source](https://doi.org/10.1016/j.est.2020.101695)
  - Panasonic NCA-Gr battery aging data
      - [Calendar aging data source](https://dx.doi.org/10.1149/2.0411609jes)
      - [Cycle aging data source](https://doi.org/10.1149/1945-7111/abae37)
