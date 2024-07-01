@@ -203,7 +203,7 @@ class Nmc111_Gr_Kokam75Ah_Battery:
         # Calculate degradation rates
         q1 = p['q1_0'] * np.exp(p['q1_1'] * (1 / TdegKN)) * np.exp(p['q1_2'] * (UaN / TdegKN))
         q3 = p['q3_0'] * np.exp(p['q3_1'] * (1/TdegKN)) * np.exp(p['q3_2'] * np.exp(dod**2))
-        q5 = p['q5_0'] + p['q5_1'] * (TdegC - 55) * dod
+        q5 = p['q5_0'] + p['q5_1'] * (TdegC - 55) * dod * (np.mean(soc)/0.6)
         # Calculate time based average of each rate
         q1 = np.trapz(q1, x=t_secs) / delta_t_secs
         q3 = np.trapz(q3, x=t_secs) / delta_t_secs
