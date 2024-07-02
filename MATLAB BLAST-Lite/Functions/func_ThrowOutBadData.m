@@ -1,0 +1,19 @@
+function cycle1 = func_ThrowOutBadData(cycle1)
+% gets rid of NaN and out-of-range data
+% "keep" is indices of good data
+% keep = find(  cycle1.I>-200    & cycle1.I<200 ...
+%             & cycle1.V>0       & cycle1.V<100 ...
+%             & cycle1.TdegC>-40 & cycle1.TdegC<100 ...
+%             & cycle1.soc>=0    & cycle1.soc<=1 ...
+%             & [1; diff(cycle1.tsec)]>0        );
+keep = find(  cycle1.TdegC>-40 & cycle1.TdegC<100 ...
+            & cycle1.soc>=0    & cycle1.soc<=1 ...
+            & [1; diff(cycle1.tsec)]>0        );
+  
+cycle1.I    = cycle1.I(keep);
+cycle1.soc  = cycle1.soc(keep);
+cycle1.TdegC= cycle1.TdegC(keep);
+cycle1.V    = cycle1.V(keep);
+cycle1.tsec = cycle1.tsec(keep);
+
+end
