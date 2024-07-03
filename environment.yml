@@ -1,0 +1,14 @@
+name: blast-lite
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy
+  - pandas
+  - matplotlib
+  - scipy
+  - seaborn
+  - pytables
+  - pip
+  - pip:
+    - geopy
