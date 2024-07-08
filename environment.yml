@@ -9,6 +9,8 @@ dependencies:
   - scipy
   - seaborn
   - pytables
+  - ipykernel
+  - nrel-rex
   - pip
   - pip:
     - geopy
