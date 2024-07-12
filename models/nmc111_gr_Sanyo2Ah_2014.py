@@ -5,6 +5,7 @@
 import numpy as np
 from functions.extract_stressors import extract_stressors
 from functions.state_functions import update_power_state
+from models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging varied SOC at 50 Celsius, and temperature at 50% state-of-charge.
@@ -22,7 +23,7 @@ from functions.state_functions import update_power_state
 # Cycle degradation predictions are NOT SENSITIVE TO TEMPERATURE OR C-RATE. Cycling degradation predictions
 # are ONLY ACCURATE NEAR 1C RATE AND 35 CELSIUS CELL TEMPERATURE. 
 
-class Nmc111_Gr_Sanyo2Ah_Battery:
+class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
     # Model predicting the degradation of Sanyo UR18650E cells, published by Schmalsteig et al:
     # http://dx.doi.org/10.1016/j.jpowsour.2014.02.012.
     # More detailed analysis of cell performance and voltage vs. state-of-charge data was copied from
@@ -130,60 +131,6 @@ class Nmc111_Gr_Sanyo2Ah_Battery:
         }
         
     # Battery model
-    def update_battery_state(self, t_secs, soc, T_celsius):
-        # Update the battery states, based both on the degradation state as well as the battery performance
-        # at the ambient temperature, T_celsius. This function assumes battery load is changing all the time.
-        # Inputs:
-            #   t_secs (ndarry): vector of the time in seconds since beginning of life for the soc_timeseries data points
-            #   soc (ndarry): vector of the state-of-charge of the battery at each t_sec
-            #   T_celsius (ndarray): the temperature of the battery during this time period, in Celsius units.
-            
-        # Check some input types:
-        if not isinstance(t_secs, np.ndarray):
-            raise TypeError('Input "t_secs" must be a numpy.ndarray')
-        if not isinstance(soc, np.ndarray):
-            raise TypeError('Input "soc" must be a numpy.ndarray')
-        if not isinstance(T_celsius, np.ndarray):
-            raise TypeError('Input "T_celsius" must be a numpy.ndarray')
-        if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
-            raise ValueError('All input timeseries must be the same length')
-        
-        stressors = extract_stressors(t_secs, soc, T_celsius)
-        # Unpack and store some stressors for debugging or plotting
-        delta_t_days = stressors["delta_t_days"]
-        delta_efc = stressors["delta_efc"]
-        TdegK = stressors["TdegK"]
-        soc = stressors["soc"]
-        Ua = stressors["Ua"]
-        dod = stressors["dod"]
-        Crate = stressors["Crate"]
-        t_days = self.stressors['t_days'][-1] + delta_t_days
-        efc = self.stressors['efc'][-1] + delta_efc
-        stressors_norm = np.array([delta_t_days, t_days, delta_efc, efc, np.mean(TdegK), np.mean(soc), np.mean(Ua), dod, Crate])
-        for k, v in zip(self.stressors.keys(), stressors_norm):
-            self.stressors[k] = np.append(self.stressors[k], v)
-            
-        self.__update_rates(stressors)
-        self.__update_states(stressors)
-        self.__update_outputs()
-
-    def update_battery_state_repeating(self):
-        # Update the battery states, based both on the degradation state as well as the battery performance
-        # at the ambient temperature, T_celsius. This function assumes battery load is repeating, i.e., stressors and
-        # degradation rates are unchanging for every timestep, and don't need to be calculated again
-        
-        # Just accumulate the cumulative stressors (total time, charge throughput in units of EFCs)
-        self.stressors['t_days'] = np.append(self.stressors['t_days'], self.stressors['t_days'][-1] + self.stressors['delta_t_days'][-1])
-        self.stressors['efc'] = np.append(self.stressors['efc'], self.stressors['efc'][-1] + self.stressors['delta_efc'][-1])
-
-        # copy end values of old stressors into a dict
-        stressors = {}
-        for k, v in zip(self.stressors.keys(), self.stressors.values()):
-            stressors[k] = v[-1]
-
-        self.__update_states(stressors)
-        self.__update_outputs()
-    
     def __update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:

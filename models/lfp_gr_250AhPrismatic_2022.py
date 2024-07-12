@@ -1,32 +1,39 @@
 # Paul Gasper, NREL
-# This model is fit to Panasonic 18650B NCA-Gr cells. High-ish energy density 18650 cells with adequate lifetime.
-# Calendar data is reported by Keil et al (https://dx.doi.org/10.1149/2.0411609jes)
-# Cycling data is reported by Preger et al (https://doi.org/10.1149/1945-7111/abae37) and
-# is available at batteryarchive.com.
-# I'm not aware of any study conducting both calendar aging and cycle aging of these cells.
+# Large format prismatic LFP-Gr cell from a large manufacturer, with >250 Ah capacity and an
+# energy-to-power ratio of 6 h^-1 (high energy density cell, low power).
+# Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
 
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state
+import scipy.stats as stats
+from functions.state_functions import update_power_state, update_sigmoid_state
 from models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging widely varied SOC at 25, 40, and 50 Celsius. 300 days max.
-# Cycle aging varied temperature and C-rates, and DOD. Some accelerating fade is observed
-# at room temperature and high DODs but isn't modeled well here. That's not a huge problem,
-# because the modeled lifetime is quite short anyways.
+# Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+# Aging test matrix varied temperature and state-of-charge for calendar aging, and
+# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
+# Charging rate was limited to a maximum of 0.16 C at 10 Celsius, and 0.65 C at all
+# higher temperatures, so the model is only fit on low rate charge data.
 
 # MODEL SENSITIVITY
 # The model predicts degradation rate versus time as a function of temperature and average
 # state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
+# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
+# charge and discharge C-rates.
+# Test data showed that the cycling degradation rate was nearly identical for all cells,
+# despite varying temperature, average SOC, and dis/charge rates. This means that the cycle aging
+# model learned the inverse temperature depedence of the calendar aging model to 'balance' the 
+# the degradation rate at the tested cycling temperatures (10 Celsius to 45 Celsius). So, the model
+# will likely make very poor extrapolations outside of this tested temperature range for cycling fade.
 
 # MODEL LIMITATIONS
-# Cycle degradation predictions WILL NOT PREDICT KNEE-POINT due to limited data.
-# Cycle aging is only modeled at 25, 35, and 45 Celsius, PREDICTIONS OUTSIDE THIS 
-# TEMPERATURE RANGE MAY BE OPTIMISTIC.
+# Charging and discharging rates were very conservative, following cycling protocols as suggested by the
+# cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
 
-class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
+
+class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
+    # Model predicting the degradation of large-format commercial LFP-Gr cells (>250 Ah)
+    # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
 
     def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
@@ -49,25 +56,26 @@ class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
             'delta_efc': np.array([np.nan]), 
             'efc': np.array([0]),
             'TdegK': np.array([np.nan]),
-            'soc': np.array([np.nan]),
-            'dod': np.array([np.nan]),
+            'soc': np.array([np.nan]), 
+            'Ua': np.array([np.nan]), 
+            'dod': np.array([np.nan]), 
             'Crate': np.array([np.nan]),
         }
 
         # Rates: History of stressor-dependent degradation rates
         self.rates = {
-            'k_cal': np.array([np.nan]),
-            'k_cyc': np.array([np.nan]),
+            'kcal': np.array([np.nan]),
+            'kcyc': np.array([np.nan]),
         }
 
         # Expermental range: details on the range of experimental conditions, i.e.,
         # the range we expect the model to be valid in
         self.experimental_range = {
-            'cycling_temperature': [15, 35],
+            'cycling_temperature': [10, 45],
             'dod': [0.8, 1],
             'soc': [0, 1],
-            'max_rate_charge': 0.5,
-            'max_rate_discharge': 2,
+            'max_rate_charge': 0.65,
+            'max_rate_discharge': 1,
         }
 
         # Degradation scalar - scales all state changes by a coefficient
@@ -76,26 +84,25 @@ class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
     # Nominal capacity
     @property
     def _cap(self):
-        return 3.2
+        return 250
 
     # Define life model parameters
     @property
     def _params_life(self):
         return {
             # Capacity fade parameters
-            'qcal_A': 75.4,
-            'qcal_B': -3.34e+03,
-            'qcal_C': 353,
-            'qcal_p': 0.512,
-            'qcyc_A': 1.86e-06,
-            'qcyc_B': 4.74e-11,
-            'qcyc_C': 0.000177,
-            'qcyc_D': 3.34e-11,
-            'qcyc_E': 2.81e-09,
-            'qcyc_p': 0.699,
+            'p1': 8.37e+04,
+            'p2': -5.21e+03,
+            'p3': -3.56e+03,
+            'pcal': 0.526,
+            'p4': 4.38e-08,
+            'p5': 1.55e-08,
+            'p6': 1.68e-07,
+            'p7': 2.19e+03,
+            'p8': 1.55e+05,
+            'pcyc': 0.828,
         }
-        
-    # Battery model
+    
     def __update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
@@ -104,33 +111,31 @@ class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
         # Unpack stressors
         t_secs = stressors["t_secs"]
         delta_t_secs = t_secs[-1] - t_secs[0]
-        delta_t_days = stressors["delta_t_days"]
-        delta_efc = stressors["delta_efc"]
         TdegK = stressors["TdegK"]
         soc = stressors["soc"]
         Ua = stressors["Ua"]
         dod = stressors["dod"]
         Crate = stressors["Crate"]
-
+        
         # Grab parameters
         p = self._params_life
 
         # Calculate the degradation coefficients
-        k_cal = p['qcal_A'] * np.exp(p['qcal_B']/TdegK) * np.exp(p['qcal_C']*soc/TdegK)
-        k_cyc  = (
-            (p['qcyc_A'] + p['qcyc_B']*Crate + p['qcyc_C']*dod)
-            * (np.exp(p['qcyc_D']/TdegK) + np.exp(-p['qcyc_E']/TdegK))
+        kcal = (np.abs(p['p1'])
+            * np.exp(p['p2']/TdegK)
+            * np.exp(p['p3']*Ua/TdegK)
         )
-
+        kcyc = ((p['p4'] + p['p5']*dod + p['p6']*Crate)
+              * (np.exp(p['p7']/TdegK) + np.exp(-p['p8']/TdegK)))
+        
         # Calculate time based average of each rate
-        k_cal = np.trapz(k_cal, x=t_secs) / delta_t_secs
-        k_cyc = np.trapz(k_cyc, x=t_secs) / delta_t_secs
+        kcal = np.trapz(kcal, x=t_secs) / delta_t_secs
+        kcyc = np.trapz(kcyc, x=t_secs) / delta_t_secs
 
         # Store rates
-        rates = np.array([k_cal, k_cyc])
+        rates = np.array([kcal, kcyc])
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
-
     
     def __update_states(self, stressors):
         # Update the battery states, based both on the degradation state as well as the battery performance
@@ -154,7 +159,7 @@ class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
         states = self.states
         # Capacity
         dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, r['k_cyc'], p['qcyc_p'])
+        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

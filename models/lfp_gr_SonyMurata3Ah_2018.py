@@ -1,8 +1,18 @@
 # Paul Gasper, NREL
+# Model predicting the degradation of Sony-Murata 3 Ah LFP-Gr cylindrical cells.
+# High power cells with low energy density and exceptional cycle life / cell quality.
+# Data is from Technical University of Munich, reported in studies led by Maik Naumann.
+# Capacity model identification was conducted at NREL. Resistance model is from Naumann et al.
+# Naumann et al used an interative fitting procedure, but it was found that lower model error could be
+# achieved by simply reoptimizing all resistance growth parameters to the entire data set.
+# Calendar aging data source: https://doi.org/10.1016/j.est.2018.01.019
+# Cycle aging data source: https://doi.org/10.1016/j.jpowsour.2019.227666
+# Model identification source: https://doi.org/10.1149/1945-7111/ac86a8
+
 import numpy as np
 import scipy.stats as stats
 from functions.state_functions import update_power_B_state, update_sigmoid_state
-from degradation_model import BatteryDegradationModel
+from models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Aging test matrix varied temperature and state-of-charge for calendar aging, and

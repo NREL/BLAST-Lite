@@ -65,7 +65,7 @@ class BatteryDegradationModel:
         if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
             raise ValueError('All input timeseries must be the same length')
         
-        stressors = self.extract_stressors(t_secs, soc, T_celsius)
+        stressors = BatteryDegradationModel.extract_stressors(t_secs, soc, T_celsius)
         # Unpack and store some stressors for debugging or plotting
         delta_t_days = stressors["delta_t_days"]
         delta_efc = stressors["delta_efc"]
@@ -120,6 +120,7 @@ class BatteryDegradationModel:
             #   stressors (dict): output from extract_stressors
         pass
 
+    @staticmethod
     def extract_stressors(t_secs, soc, T_celsius):
         # Extract stressors
         t_days = t_secs / (24*60*60)
