@@ -3,9 +3,8 @@
 # http://dx.doi.org/10.1016/j.jpowsour.2014.02.012
 
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state
-from models.degradation_model import BatteryDegradationModel
+from ..functions.state_functions import update_power_state
+from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging varied SOC at 50 Celsius, and temperature at 50% state-of-charge.
@@ -131,7 +130,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
         }
         
     # Battery model
-    def __update_rates(self, stressors):
+    def update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
         #   stressors (dict): output from extract_stressors
@@ -173,7 +172,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
     
-    def __update_states(self, stressors):
+    def update_states(self, stressors):
         # Update the battery states, based both on the degradation state as well as the battery performance
         # at the ambient temperature, T_celsius
         # Inputs:
@@ -207,7 +206,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
             x = self.states[k][-1] + v
             self.states[k] = np.append(self.states[k], x)
     
-    def __update_outputs(self):
+    def update_outputs(self, stressors):
         # Calculate outputs, based on current battery state
         states = self.states
         p = self._params_life

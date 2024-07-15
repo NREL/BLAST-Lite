@@ -11,8 +11,8 @@
 
 import numpy as np
 import scipy.stats as stats
-from functions.state_functions import update_power_B_state, update_sigmoid_state
-from models.degradation_model import BatteryDegradationModel
+from ..functions.state_functions import update_power_B_state, update_sigmoid_state
+from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Aging test matrix varied temperature and state-of-charge for calendar aging, and
@@ -153,7 +153,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
             'D_r_cyc': 0.91882
         }
     
-    def __update_rates(self, stressors):
+    def update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
         #   stressors (dict): output from extract_stressors
@@ -217,7 +217,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
     
-    def __update_states(self, stressors):
+    def update_states(self, stressors):
         # Update the battery states, based both on the degradation state as well as the battery performance
         # at the ambient temperature, T_celsius
         # Inputs:
@@ -256,7 +256,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
             x = self.states[k][-1] + v
             self.states[k] = np.append(self.states[k], x)
     
-    def __update_outputs(self):
+    def update_outputs(self, stressors):
         # Calculate outputs, based on current battery state
         states = self.states
 

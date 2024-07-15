@@ -1,5 +1,5 @@
 import numpy as np
-import functions.rainflow as rainflow
+from ..functions.rainflow import count_cycles
 
 class BatteryDegradationModel:
 
@@ -80,9 +80,9 @@ class BatteryDegradationModel:
         for k, v in zip(self.stressors.keys(), stressors_norm):
             self.stressors[k] = np.append(self.stressors[k], v)
             
-        self.__update_rates(stressors)
-        self.__update_states(stressors)
-        self.__update_outputs(stressors)
+        self.update_rates(stressors)
+        self.update_states(stressors)
+        self.update_outputs(stressors)
 
     def update_battery_state_repeating(self):
         # Update the battery states, based both on the degradation state as well as the battery performance
@@ -98,23 +98,23 @@ class BatteryDegradationModel:
         for k, v in zip(self.stressors.keys(), self.stressors.values()):
             stressors[k] = v[-1]
 
-        self.__update_states(stressors)
-        self.__update_outputs(stressors)
+        self.update_states(stressors)
+        self.update_outputs(stressors)
     
-    def __update_rates(self, stressors):
+    def update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
         #   stressors (dict): output from extract_stressors
         pass
     
-    def __update_states(self, stressors):
+    def update_states(self, stressors):
         # Update the battery states, based both on the degradation state as well as the battery performance
         # at the ambient temperature, T_celsius
         # Inputs:
             #   stressors (dict): output from extract_stressors
         pass
 
-    def __update_outputs(self, stressors):
+    def update_outputs(self, stressors):
         # Calculate outputs, based on current battery state (and maybe stressors)
         # Inputs:
             #   stressors (dict): output from extract_stressors
@@ -140,7 +140,7 @@ class BatteryDegradationModel:
         # While this will not be precise, it still helps get a guess as to where the plateaus of the anode-reference potential are.
         Ua = BatteryDegradationModel.get_Ua(soc)
 
-        cycles = rainflow.count_cycles(soc)
+        cycles = count_cycles(soc)
         cycles = sum(i for _, i in cycles)
 
         stressors = {

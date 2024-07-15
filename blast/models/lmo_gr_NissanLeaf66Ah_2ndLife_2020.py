@@ -1,39 +1,27 @@
 # Paul Gasper, NREL
-# Large format prismatic LFP-Gr cell from a large manufacturer, with >250 Ah capacity and an
-# energy-to-power ratio of 6 h^-1 (high energy density cell, low power).
-# Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+# This model is fit to SECOND LIFE data on Nissan Leaf half-modules (2p cells) by Braco et al.
+# https://doi.org/10.1109/EEEIC/ICPSEUROPE54979.2022.9854784 (calendar aging data)
+# https://doi.org/10.1016/j.est.2020.101695 (cycle aging data)
+# Note that these cells are already hugely degraded, starting out at an average relative capacity
+# of 70%. So the model reports q and qNew, where qNew is relative to initial
 
 import numpy as np
-import scipy.stats as stats
-from functions.state_functions import update_power_state, update_sigmoid_state
-from models.degradation_model import BatteryDegradationModel
+from ..functions.state_functions import update_power_state
+from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
-# Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
-# Aging test matrix varied temperature and state-of-charge for calendar aging, and
-# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
-# Charging rate was limited to a maximum of 0.16 C at 10 Celsius, and 0.65 C at all
-# higher temperatures, so the model is only fit on low rate charge data.
+# Calendar aging widely varied SOC and temperature.
+# Cycle aging is only at a single condition (25 Celsius, 100% DOD, 1C-1C).
 
 # MODEL SENSITIVITY
 # The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
-# charge and discharge C-rates.
-# Test data showed that the cycling degradation rate was nearly identical for all cells,
-# despite varying temperature, average SOC, and dis/charge rates. This means that the cycle aging
-# model learned the inverse temperature depedence of the calendar aging model to 'balance' the 
-# the degradation rate at the tested cycling temperatures (10 Celsius to 45 Celsius). So, the model
-# will likely make very poor extrapolations outside of this tested temperature range for cycling fade.
+# state-of-charge and degradation rate is only a function equivalent full cycles.
 
 # MODEL LIMITATIONS
-# Charging and discharging rates were very conservative, following cycling protocols as suggested by the
-# cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
+# Cycling degradation IS ONLY A FUNCTION OF CHARGE THROUGHPUT due to limited aging data.
+# Cycling degradation predictions ARE ONLY VALID NEAR 25 CELSIUS, 100% DOD, 1 C CHARGE/DISCHARGE RATE.
 
-
-class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
-    # Model predicting the degradation of large-format commercial LFP-Gr cells (>250 Ah)
-    # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
 
     def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
@@ -47,6 +35,7 @@ class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
             'q': np.array([1]),
             'q_t': np.array([1]),
             'q_EFC': np.array([1]),
+            'qNew': np.array([0.7]),
         }
 
         # Stressors: History of stressors on the battery
@@ -56,25 +45,21 @@ class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
             'delta_efc': np.array([np.nan]), 
             'efc': np.array([0]),
             'TdegK': np.array([np.nan]),
-            'soc': np.array([np.nan]), 
-            'Ua': np.array([np.nan]), 
-            'dod': np.array([np.nan]), 
-            'Crate': np.array([np.nan]),
+            'soc': np.array([np.nan]),
         }
 
         # Rates: History of stressor-dependent degradation rates
         self.rates = {
-            'kcal': np.array([np.nan]),
-            'kcyc': np.array([np.nan]),
+            'k_cal': np.array([np.nan]),
         }
 
         # Expermental range: details on the range of experimental conditions, i.e.,
         # the range we expect the model to be valid in
         self.experimental_range = {
-            'cycling_temperature': [10, 45],
+            'cycling_temperature': [20, 30],
             'dod': [0.8, 1],
             'soc': [0, 1],
-            'max_rate_charge': 0.65,
+            'max_rate_charge': 1,
             'max_rate_discharge': 1,
         }
 
@@ -83,27 +68,28 @@ class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
 
     # Nominal capacity
     @property
+    def _cap_2ndLife(self):
+        return 46
+    
+    @property
     def _cap(self):
-        return 250
+        return 66
 
     # Define life model parameters
     @property
     def _params_life(self):
         return {
             # Capacity fade parameters
-            'p1': 8.37e+04,
-            'p2': -5.21e+03,
-            'p3': -3.56e+03,
-            'pcal': 0.526,
-            'p4': 4.38e-08,
-            'p5': 1.55e-08,
-            'p6': 1.68e-07,
-            'p7': 2.19e+03,
-            'p8': 1.55e+05,
-            'pcyc': 0.828,
+            'qcal_A': 3.25e+08,
+            'qcal_B': -7.58e+03,
+            'qcal_C': 162,
+            'qcal_p': 0.464,
+            'qcyc_A': 7.58e-05,
+            'qcyc_p': 1.08,
         }
-    
-    def __update_rates(self, stressors):
+        
+    # Battery model    
+    def update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
         #   stressors (dict): output from extract_stressors
@@ -116,28 +102,22 @@ class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
         Ua = stressors["Ua"]
         dod = stressors["dod"]
         Crate = stressors["Crate"]
-        
+
         # Grab parameters
         p = self._params_life
 
         # Calculate the degradation coefficients
-        kcal = (np.abs(p['p1'])
-            * np.exp(p['p2']/TdegK)
-            * np.exp(p['p3']*Ua/TdegK)
-        )
-        kcyc = ((p['p4'] + p['p5']*dod + p['p6']*Crate)
-              * (np.exp(p['p7']/TdegK) + np.exp(-p['p8']/TdegK)))
-        
+        k_cal = p['qcal_A'] * np.exp(p['qcal_B']/TdegK) * np.exp(p['qcal_C']*soc/TdegK)
+
         # Calculate time based average of each rate
-        kcal = np.trapz(kcal, x=t_secs) / delta_t_secs
-        kcyc = np.trapz(kcyc, x=t_secs) / delta_t_secs
+        k_cal = np.trapz(k_cal, x=t_secs) / delta_t_secs
 
         # Store rates
-        rates = np.array([kcal, kcyc])
+        rates = np.array([k_cal])
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
-    
-    def __update_states(self, stressors):
+
+    def update_states(self, stressors):
         # Update the battery states, based both on the degradation state as well as the battery performance
         # at the ambient temperature, T_celsius
         # Inputs:
@@ -167,7 +147,7 @@ class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
             x = self.states[k][-1] + v
             self.states[k] = np.append(self.states[k], x)
     
-    def __update_outputs(self):
+    def update_outputs(self, stressors):
         # Calculate outputs, based on current battery state
         states = self.states
 
@@ -175,9 +155,10 @@ class Lfp_Gr_250AhPrismatic_2022(BatteryDegradationModel):
         q_t = 1 - states['qLoss_t'][-1]
         q_EFC = 1 - states['qLoss_EFC'][-1]
         q = 1 - states['qLoss_t'][-1] - states['qLoss_EFC'][-1]
+        qNew = 0.7 * q
 
         # Assemble output
-        out = np.array([q, q_t, q_EFC])
+        out = np.array([q, q_t, q_EFC, qNew])
         # Store results
         for k, v in zip(list(self.outputs.keys()), out):
             self.outputs[k] = np.append(self.outputs[k], v)

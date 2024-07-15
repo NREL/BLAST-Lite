@@ -1,18 +1,15 @@
 # Paul Gasper, NREL
-# This model is fit to LG MJ1 cell aging data reported as part of the EU EVERLASTING battery project, report D2.3
-# https://everlasting-project.eu/wp-content/uploads/2020/03/EVERLASTING_D2.3_final_20200228.pdf
-# Cell tests were reported in early 2020, so likely 2018 or 2019 LG MJ1 cells.
-# High energy density 18650s but poor cycle life.
+# This model is fit to data reported by Bank et al from commercial NMC-LTO cells.
+# https://doi.org/10.1016/j.jpowsour.2020.228566
 
 import numpy as np
-from functions.extract_stressors import extract_stressors
-from functions.state_functions import update_power_state
-from models.degradation_model import BatteryDegradationModel
+from ..functions.state_functions import update_power_state
+from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging varied SOC (10%, 70%, 90%) and temperature.
-# Cycle aging varied temperature and C-rates; all DOD is 80% (10%-90%). NO ACCELERATED FADE OBSERVED.
-# Relative discharge capacity is reported from measurements recorded at 25 Celsius and C/20 rate.
+# Calendar aging varies temperature and SOC. There is almost no calendar aging impact
+# at all until 80 Celsius.
+# Cycle aging varies temperature, C-rate, and depth-of-discharge.
 
 # MODEL SENSITIVITY
 # The model predicts degradation rate versus time as a function of temperature and average
@@ -20,23 +17,26 @@ from models.degradation_model import BatteryDegradationModel
 # a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
 
 # MODEL LIMITATIONS
-# Cycle degradation predictions WILL NOT PREDICT KNEE-POINT due to limited data.
-# OPERATION AT HIGH DOD PREDCTIONS ARE LIKELY INACCURATE (it is unclear what voltage window corresponds to SOCs defined in the test data).
-# NMC811 is known to degrade quickly at voltages above 4.1 V.
+# Calendar aging has competition between capacity gain and capacity loss. There is an experimental
+# case (80 Celsius, 5% SOC) that has complex behavior not modeled here.
+# Astonishingly enough, the cycling degradation model is actually _overestimating_ capacity fade for most cases.
+# The exception here is at very high temperature (60+ Celsius), where the fade is high, but not quite as high as observed degradation.
 
-class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
+class Nmc_Lto_10Ah_Battery(BatteryDegradationModel):
 
     def __init__(self, degradation_scalar=1):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
+            'qGain_t': np.array([0]),
             'qLoss_EFC': np.array([0]),
         }
 
         # Outputs: Battery properties derived from state values
         self.outputs = {
             'q': np.array([1]),
-            'q_t': np.array([1]),
+            'q_t_loss': np.array([1]),
+            'q_t_gain': np.array([1]),
             'q_EFC': np.array([1]),
         }
 
@@ -54,18 +54,19 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
 
         # Rates: History of stressor-dependent degradation rates
         self.rates = {
-            'k_cal': np.array([np.nan]),
-            'k_cyc': np.array([np.nan]),
+            'alpha': np.array([np.nan]),
+            'beta': np.array([np.nan]),
+            'gamma': np.array([np.nan]),
         }
 
         # Expermental range: details on the range of experimental conditions, i.e.,
         # the range we expect the model to be valid in
         self.experimental_range = {
-            'cycling_temperature': [0, 50],
-            'dod': [0.2, 0.8],
-            'soc': [0.1, 0.9],
-            'max_rate_charge': 1,
-            'max_rate_discharge': 3,
+            'cycling_temperature': [30, 60],
+            'dod': [0, 1],
+            'soc': [0, 1],
+            'max_rate_charge': 10,
+            'max_rate_discharge': 10,
         }
 
         # Degradation scalar - scales all state changes by a coefficient
@@ -74,27 +75,30 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
     # Nominal capacity
     @property
     def _cap(self):
-        return 3.5
+        return 10.2
 
     # Define life model parameters
     @property
     def _params_life(self):
         return {
             # Capacity fade parameters
-            'qcal_A': 0.0353,
-            'qcal_B': -1.03e+03,
-            'qcal_C': 57.7,
-            'qcal_p': 0.743,
-            'qcyc_A': 1.77e-07,
-            'qcyc_B': 8.08e-13,
-            'qcyc_C': 2.21e-07,
-            'qcyc_D': 2.25e+03,
-            'qcyc_E': 1.14e+04,
-            'qcyc_p': 0.695,
+            'alpha_0': 3.11e+11,
+            'alpha_1': -34.8,
+            'alpha_2': 1.07,
+            'alpha_p': 0.473,
+            'beta_0': 7.86e+10,
+            'beta_1': -35.8,
+            'beta_2': 3.94,
+            'beta_p': -0.553,
+            'gamma_0': 1.29,
+            'gamma_1': 7.83e-05,
+            'gamma_2': 4.02,
+            'gamma_3': -8.33,
+            'gamma_p': 0.526,
         }
-
+        
     # Battery model
-    def __update_rates(self, stressors):
+    def update_rates(self, stressors):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
         #   stressors (dict): output from extract_stressors
@@ -107,27 +111,30 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
         Ua = stressors["Ua"]
         dod = stressors["dod"]
         Crate = stressors["Crate"]
-        
+        TdegKN = TdegK / (273.15 + 45)
+
         # Grab parameters
         p = self._params_life
 
         # Calculate the degradation coefficients
-        k_cal = p['qcal_A'] * np.exp(p['qcal_B']/TdegK) * np.exp(p['qcal_C']*soc/TdegK)
-        k_cyc  = (
-            (p['qcyc_A'] + p['qcyc_B']*Crate + p['qcyc_C']*dod)
-            * (np.exp(p['qcyc_D']/TdegK) + np.exp(-p['qcyc_E']/TdegK))
+        alpha = p['alpha_0'] * np.exp(p['alpha_1']/TdegKN) * np.exp(p['alpha_2']*soc/TdegKN)
+        beta = p['beta_0'] * np.exp(p['beta_1']/TdegKN) * np.exp(p['beta_2']*soc/TdegKN)
+        gamma = (
+            (p['gamma_0'] + p['gamma_1']*Crate + p['gamma_2']*(dod**3))
+            * np.exp(p['gamma_3']/TdegKN)
         )
 
         # Calculate time based average of each rate
-        k_cal = np.trapz(k_cal, x=t_secs) / delta_t_secs
-        k_cyc = np.trapz(k_cyc, x=t_secs) / delta_t_secs
+        alpha = np.trapz(alpha, x=t_secs) / delta_t_secs
+        beta = np.trapz(beta, x=t_secs) / delta_t_secs
+        gamma = np.trapz(gamma, x=t_secs) / delta_t_secs
 
         # Store rates
-        rates = np.array([k_cal, k_cyc])
+        rates = np.array([alpha, beta, gamma])
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
-    
-    def __update_states(self, stressors):
+
+    def update_states(self, stressors):
         # Update the battery states, based both on the degradation state as well as the battery performance
         # at the ambient temperature, T_celsius
         # Inputs:
@@ -136,7 +143,7 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
         # Unpack stressors
         delta_t_days = stressors["delta_t_days"]
         delta_efc = stressors["delta_efc"]
-
+        
         # Grab parameters
         p = self._params_life
 
@@ -148,26 +155,28 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, r['k_cyc'], p['qcyc_p'])
+        dq_t_gain = self._degradation_scalar * update_power_state(states['qGain_t'][-1], delta_t_days, r['alpha'], p['alpha_p'])
+        dq_t_loss = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['beta'], p['beta_p'])
+        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, r['gamma'], p['gamma_p'])
 
         # Accumulate and store states
-        dx = np.array([dq_t, dq_EFC])
+        dx = np.array([dq_t_loss, dq_t_gain, dq_EFC])
         for k, v in zip(states.keys(), dx):
             x = self.states[k][-1] + v
             self.states[k] = np.append(self.states[k], x)
     
-    def __update_outputs(self):
+    def update_outputs(self, stressors):
         # Calculate outputs, based on current battery state
         states = self.states
 
         # Capacity
-        q_t = 1 - states['qLoss_t'][-1]
+        q_t_loss = 1 - states['qLoss_t'][-1]
+        q_t_gain = 1 + states['qGain_t'][-1]
         q_EFC = 1 - states['qLoss_EFC'][-1]
-        q = 1 - states['qLoss_t'][-1] - states['qLoss_EFC'][-1]
+        q = 1 - states['qLoss_t'][-1] + states['qGain_t'][-1] - states['qLoss_EFC'][-1]
 
         # Assemble output
-        out = np.array([q, q_t, q_EFC])
+        out = np.array([q, q_t_loss, q_t_gain, q_EFC])
         # Store results
         for k, v in zip(list(self.outputs.keys()), out):
             self.outputs[k] = np.append(self.outputs[k], v)
