@@ -12,7 +12,9 @@ These battery models predict 'expected life', that is, battery life under nomina
 - Pack performance loss due to cell-to-cell inbalance
 
 Aging models are generally trained on a limited amount of data, that is, there is not enough information to estimate cell-to-cell variability in degradation rates.
-Battery 'warranty life' is generally much more conservative than 'expected life'.
+Battery 'warranty life' is generally much more conservative than 'expected life'. 
+These models are estimating cell level degradation, there will be additional performance penalties and caveats for estimating lifetime of battery packs. 
+A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell lifetime, but please support model simulations with data if you have it.
 
 ## Citations:
  - Sony Murata LFP-Gr battery aging data and model
