@@ -27,6 +27,8 @@ A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell li
  - Panasonic NCA-Gr battery aging data
      - [Calendar aging data source](https://dx.doi.org/10.1149/2.0411609jes)
      - [Cycle aging data source](https://doi.org/10.1149/1945-7111/abae37)
+ - [Sony Murata NCA-GrSi battery aging data](https://doi.org/10.1016/j.jpowsour.2022.232498)
+     - Additional research by TUM on [mechanistic cycling](https://doi.org/10.1016/j.jpowsour.2023.233947) and [mechanistic calendar aging](https://doi.org/10.1016/j.jpowsour.2023.233208) models is not replicated here
  - [Commercial NMC-LTO battery aging data source](https://doi.org/10.1016/j.jpowsour.2020.228566)
  - [Kokam NMC111-Gr battery aging data source](https://ieeexplore.ieee.org/iel7/7951530/7962914/07963578.pdf)
  - [Sanyo NMC111-Gr battery aging model source](http://dx.doi.org/10.1016/j.jpowsour.2014.02.012)
