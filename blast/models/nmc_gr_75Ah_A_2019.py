@@ -6,7 +6,7 @@
 
 import numpy as np
 import scipy.stats as stats
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from .degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -25,10 +25,10 @@ from .degradation_model import BatteryDegradationModel
 # cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
 
 
-class NMC_Gr_75Ah_A_2019(BatteryDegradationModel):
+class NMC_Gr_75Ah_A(BatteryDegradationModel):
     # Model predicting degradation of 'NMC-Gr A' cells from https://doi.org/10.1016/j.est.2023.109042.
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NMC-Gr A 75Ah"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -73,6 +73,8 @@ class NMC_Gr_75Ah_A_2019(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

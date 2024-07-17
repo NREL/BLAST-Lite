@@ -6,7 +6,7 @@
 # of 70%. So the model reports q and qNew, where qNew is relative to initial
 
 import numpy as np
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -23,7 +23,7 @@ from ..models.degradation_model import BatteryDegradationModel
 
 class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="LMO-Gr Nissan Leaf"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -65,6 +65,8 @@ class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

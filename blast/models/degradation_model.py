@@ -1,5 +1,6 @@
 import numpy as np
-from ..functions.rainflow import count_cycles
+from ..rainflow import count_cycles, extract_cycles
+import pandas as pd
 
 class BatteryDegradationModel:
 
@@ -30,12 +31,14 @@ class BatteryDegradationModel:
         self.experimental_range = {
         }
 
+        # plotting label
+        self._label = ""
+
     # Functions to calculate voltage, half-cell potentials, or other cell specific
     # features that will be needed for calculating stressors. These equations for
     # calculating anode-to-lithium potential for a graphite electrode are a common
     # example, and are taken from M. Safari and C. Delacourt, Journal of the 
     # Electrochemical Society, 158(5), A562 (2011).
-    
     @staticmethod
     def get_Ua(soc):
         # Calculate lithiation fraction from soc
@@ -46,6 +49,124 @@ class BatteryDegradationModel:
         return (0.6379 + 0.5416*np.exp(-305.5309*Xa) + 
             0.044*np.tanh(-1*(Xa-0.1958)/0.1088) - 0.1978*np.tanh((Xa-1.0571)/0.0854) - 
             0.6875*np.tanh((Xa+0.0117)/0.0529) - 0.0175*np.tanh((Xa-0.5692)/0.0875))
+
+    def simulate_battery_life(self, input_timeseries, simulation_years: float = None,
+                            is_constant_input: bool = False, breakpoints_max_time_diff_s: float = 86400, breakpoints_max_EFC_diff: float = 1):
+        # run battery life simulation over the input, or repeat for the number of years specified
+        #   check input timeseries
+        #       needs Temperature_C, SOC, t_secs keys
+        #       values all need to be the same length
+        #   if is_constant_input
+        #       run life sim repeating until simulation is longer than simulation_years
+        #   else
+        #       check if we need to tile
+        #           check that the input is periodic (SOC and temperatures don't change absurdly)
+        #           tile input timeseries until it is 'simulation_years' long
+        #       step through (maybe) tiled input_timeseries
+
+        # Check if required keys are in the input_timeseries dictionary
+        required_keys = ['Temperature_C', 'SOC', 'Time_s']
+        for key in required_keys:
+            if key not in input_timeseries:
+                raise ValueError(f"Required key '{key}' is missing in the input_timeseries dictionary.")
+        # Check if all values are numpy arrays and of the same length
+        lengths = [len(input_timeseries[key]) for key in required_keys]
+        if len(set(lengths)) != 1:
+            raise ValueError("All numpy arrays in input_timeseries must have the same length.")
+        
+        if is_constant_input:
+            # Only calculate stressors / degradation rates on the first timestep to dramatically accelerate the simulation
+            self.update_battery_state(input_timeseries['Time_s'], input_timeseries['SOC'], input_timeseries['Temperature_C'])
+            years_simulated = self.stressors['t_days'][-1]/365
+            while years_simulated < simulation_years:
+                self.update_battery_state_repeating()
+                years_simulated += self.stressors['t_days'][-1]/365
+            return self
+        else:
+            # Unpack the inputs, calculate equivalent full cycles (EFCs)
+            if isinstance(input_timeseries, dict):
+                t_secs = input_timeseries['Time_s']
+                soc = input_timeseries['SOC']
+                temperature = input_timeseries['Temperature_C']
+            elif isinstance(input_timeseries, pd.DataFrame):
+                t_secs = input_timeseries['Time_s'].values
+                soc = input_timeseries['SOC'].values
+                temperature = input_timeseries['Temperature_C'].values
+            else:
+                raise TypeError("'input_timeseries' was not a dict or a Dataframe.")
+            
+            # Check if we need to tile the inputs, do it if we do
+            if simulation_years is not None and t_secs[-1] < simulation_years*365*24*3600:
+                # Check that inputs are periodic before tiling
+                if soc[-1] - soc[0] > 0.2:
+                    raise UserWarning(f"Inputs are being tiled to simulate {simulation_years} years, big jumps between repeats may lead to unrealistic simulations. Consider using the 'make_inputs_periodic' helper function.")
+                if temperature[-1] - temperature[0] > 10:
+                    raise UserWarning(f"Inputs are being tiled to simulate {simulation_years} years, big jumps between repeats may lead to unrealistic simulations. Consider using the 'make_inputs_periodic' helper function.")
+                
+                # Tile the inputs. When tiling time, assume the timestep between repeats is the most common timestep.
+                n_tile = np.ceil((simulation_years*365*24*3600)/t_secs[-1]).astype(int)
+                delta_t_secs = np.ediff1d(t_secs, to_begin=0)
+                delta_t_secs[0] = np.median(delta_t_secs)
+                delta_t_secs = np.tile(delta_t_secs, n_tile)
+                delta_t_secs[0] = 0
+                t_secs = np.cumsum(delta_t_secs)
+                soc = np.tile(soc, n_tile)
+                temperature = np.tile(temperature, n_tile)
+
+                # Cutoff once simulation is at simulation_years
+                idx_end = np.argwhere(t_secs > simulation_years*365*24*3600)
+                idx_end = idx_end[0][0]
+                t_secs = t_secs[:idx_end]
+                soc = soc[:idx_end]
+                temperature = temperature[:idx_end]
+
+            # Chunk the input timeseries into cycles (SOC turning points) using the rainflow algorithm
+            cycles_generator = (
+                    [span, mean, count, idx_start, idx_end] for span, mean, count, idx_start, idx_end in extract_cycles(soc)
+                )
+            idx_turning_point = []
+            for cycle in cycles_generator:
+                idx_turning_point.append(cycle[-1])
+            idx_turning_point = np.array(idx_turning_point)
+
+            # Low DOD cycles can be extremely short, or the cycle time during long periods of storage excessively long.
+            # Find breakpoints for simulating degradation, either simulating degradation when the number of EFCs between
+            # turning points is greater than 1, or every day if EFCs accumlate slower than that.        
+            EFCs = np.cumsum(np.abs(np.ediff1d(soc, to_begin=0)))/2
+            simulation_breakpoints = self.find_breakpoints(t_secs, EFCs, idx_turning_point, max_time_diff_s=breakpoints_max_time_diff_s, max_EFC_diff=breakpoints_max_EFC_diff)
+            # Add the final point manually if it's not there by coinkydink
+            if simulation_breakpoints[-1] != len(t_secs)-1:
+                simulation_breakpoints.append(len(t_secs)-1)
+
+            # Simulate battery life between breakpoints until we reach the end
+            prior_breakpoint = 0
+            for breakpoint in simulation_breakpoints:
+                self.update_battery_state(t_secs[prior_breakpoint:breakpoint], soc[prior_breakpoint:breakpoint], temperature[prior_breakpoint:breakpoint])
+                prior_breakpoint = breakpoint
+    
+    @staticmethod
+    def find_breakpoints(time_seconds, EFCs, idx_turning_point, max_time_diff_s = 86400, max_EFC_diff = 1):
+        # Find breakpoints for simulating battery degradation, where degradation is calculated once
+        # a certain number of equivalent full cycles has passed, otherwise after a certain time has passed.
+        # Defaults are to calculate degradation every 1 EFC or every day.
+        breakpoints = []
+        last_breakpoint = 0
+        for i in idx_turning_point:
+            # Check if change in time_seconds greater than max_time_diff_s
+            if time_seconds[i] - time_seconds[last_breakpoint] > max_time_diff_s:
+                # Add a breakpoint at each day
+                for i_time in range(last_breakpoint, i):
+                    if time_seconds[i_time] - time_seconds[last_breakpoint] > max_time_diff_s:
+                        breakpoints.append(i_time)
+                        last_breakpoint = i_time
+                continue
+
+            # Check change in EFCs greater than max_EFC_diff
+            if EFCs[i] - EFCs[last_breakpoint] > max_EFC_diff:
+                breakpoints.append(i)
+                last_breakpoint = i
+
+        return breakpoints
 
     def update_battery_state(self, t_secs, soc, T_celsius):
         # Update the battery states, based both on the degradation state as well as the battery performance
@@ -156,3 +277,47 @@ class BatteryDegradationModel:
         }
 
         return stressors
+
+"""
+# Test of 'find_breakpoints'
+from .rainflow import extract_cycles
+
+hours = 6 * 24
+t_hours = np.arange(hours + 1)
+t_secs = t_hours * 3600
+soc = np.tile(
+    np.array(
+        [1, 0.6, 0.4, 0.4, 0.6, 1,
+        1, 0.5, 0, 0.5, 1, 1,
+        1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,
+        0.98, 1, 0.98, 1, 0.98, 1,]
+        ),
+    2
+)
+soc = np.append(soc, 1)
+EFCs = np.cumsum(np.abs(np.ediff1d(soc, to_begin=0)))/2
+
+# Chunk the input timeseries into cycles (SOC turning points) using the rainflow algorithm
+cycles_generator = (
+        [span, mean, count, idx_start, idx_end] for span, mean, count, idx_start, idx_end in extract_cycles(soc)
+    )
+idx_turning_point = []
+for cycle in cycles_generator:
+    idx_turning_point.append(cycle[-1])
+idx_turning_point = np.array(idx_turning_point)
+
+# Find the breakpoints for battery life simulation
+idx_simulation_breakpoints = find_breakpoints(t_secs, EFCs, idx_turning_point)
+
+plt.plot(t_hours/24, soc)
+plt.plot(t_hours[idx_turning_point]/24, soc[idx_turning_point], '.g')
+plt.plot(t_hours[idx_simulation_breakpoints]/24, soc[idx_simulation_breakpoints], 'or')
+"""

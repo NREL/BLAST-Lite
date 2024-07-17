@@ -1,6 +1,6 @@
 # Paul Gasper, NREL
 import numpy as np
-from ..functions.state_functions import update_power_state, update_sigmoid_state
+from ..state_functions import update_power_state, update_sigmoid_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -41,7 +41,7 @@ class Nmc111_Gr_Kokam75Ah_Battery(BatteryDegradationModel):
     #   Calendar resistance growth rate (LLI), relative to capacity loss rate: r1
     #   Cycling resistance growth rate (LLI), relative to capacity loss rate: r3
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NMC111-Gr Kokam"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_LLI_t': np.array([0]),   # relative Li inventory change, time dependent (SEI)
@@ -96,6 +96,8 @@ class Nmc111_Gr_Kokam75Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
     
     # Nominal capacity
     @property

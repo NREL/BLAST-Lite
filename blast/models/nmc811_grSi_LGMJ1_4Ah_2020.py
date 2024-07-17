@@ -5,7 +5,7 @@
 # High energy density 18650s but poor cycle life.
 
 import numpy as np
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -25,7 +25,7 @@ from ..models.degradation_model import BatteryDegradationModel
 
 class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NMC811-GrSi LG MJ1"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -69,6 +69,8 @@ class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

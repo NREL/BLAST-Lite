@@ -3,7 +3,7 @@
 # http://dx.doi.org/10.1016/j.jpowsour.2014.02.012
 
 import numpy as np
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -31,7 +31,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
     # Voltage lookup table here use data from Ecker et al for 0/10% SOC, and other values were extracted
     # from Figure 1 in Schmalsteig et al using WebPlotDigitizer.
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NMC111-Gr Sanyo"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -82,6 +82,8 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

@@ -6,7 +6,7 @@
 # I'm not aware of any study conducting both calendar aging and cycle aging of these cells.
 
 import numpy as np
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -27,7 +27,7 @@ from ..models.degradation_model import BatteryDegradationModel
 
 class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NCA-Gr Panasonic"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -71,6 +71,8 @@ class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

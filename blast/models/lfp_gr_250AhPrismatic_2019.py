@@ -5,7 +5,7 @@
 
 import numpy as np
 import scipy.stats as stats
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from .degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -31,11 +31,11 @@ from .degradation_model import BatteryDegradationModel
 # cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
 
 
-class Lfp_Gr_250AhPrismatic_2019(BatteryDegradationModel):
+class Lfp_Gr_250AhPrismatic(BatteryDegradationModel):
     # Model predicting the degradation of large-format commercial LFP-Gr cells (>250 Ah)
     # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="LFP-Gr 250Ah"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -80,6 +80,8 @@ class Lfp_Gr_250AhPrismatic_2019(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

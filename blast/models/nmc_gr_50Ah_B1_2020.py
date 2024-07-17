@@ -6,7 +6,7 @@
 
 import numpy as np
 import scipy.stats as stats
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from .degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -27,10 +27,10 @@ from .degradation_model import BatteryDegradationModel
 # low temperatures and charging rates above C/3 will likely give inaccurate predictions.
 
 
-class NMC_Gr_50Ah_B1_2020(BatteryDegradationModel):
+class NMC_Gr_50Ah_B1(BatteryDegradationModel):
     # Model predicting degradation of 'NMC-Gr B1' cells from https://doi.org/10.1016/j.est.2023.109042.
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NMC-Gr B1 50Ah"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -75,6 +75,8 @@ class NMC_Gr_50Ah_B1_2020(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

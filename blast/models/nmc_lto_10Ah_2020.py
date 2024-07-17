@@ -3,7 +3,7 @@
 # https://doi.org/10.1016/j.jpowsour.2020.228566
 
 import numpy as np
-from ..functions.state_functions import update_power_state
+from ..state_functions import update_power_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -24,7 +24,7 @@ from ..models.degradation_model import BatteryDegradationModel
 
 class Nmc_Lto_10Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NMC-LTO"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -71,6 +71,8 @@ class Nmc_Lto_10Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

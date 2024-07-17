@@ -11,7 +11,7 @@
 
 import numpy as np
 import scipy.stats as stats
-from ..functions.state_functions import update_power_B_state, update_sigmoid_state
+from ..state_functions import update_power_B_state, update_sigmoid_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -54,7 +54,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
     #   k_ref_r_cal: rate of resistance growth due to calendar degradation
     #   A_r_cyc: rate of resistance growth due to cycling degradation
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="LFP-Gr Sony-Murata"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_LLI_t': np.array([0]),
@@ -110,6 +110,8 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property

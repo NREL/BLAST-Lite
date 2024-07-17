@@ -10,8 +10,7 @@
 #   Mechanistic calendar aging model (considers impact of capacity check frequency): https://doi.org/10.1016/j.jpowsour.2023.233208
 
 import numpy as np
-import scipy.stats as stats
-from ..functions.state_functions import update_sigmoid_state
+from ..state_functions import update_sigmoid_state
 from ..models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -34,7 +33,7 @@ from ..models.degradation_model import BatteryDegradationModel
 
 class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1):
+    def __init__(self, degradation_scalar=1, label="NCA-GrSi Sony-Murata"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -84,6 +83,8 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
 
         # Degradation scalar - scales all state changes by a coefficient
         self._degradation_scalar = degradation_scalar
+        # Label for plotting
+        self._label = label
 
     # Nominal capacity
     @property
