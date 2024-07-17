@@ -296,16 +296,20 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
             t_secs_charging = np.cumsum(dt_charging)
             if len(instantaneous_cchg) > 1:
                 Cchg = np.trapz(instantaneous_cchg, t_secs_charging) / (t_secs_charging[-1] - t_secs_charging[0])
-            else:
+            elif len(instantaneous_cchg) == 1:
                 Cchg = instantaneous_cchg[0]
+            else: # half cycle with no charge segment
+                Cchg = 0
             instantaneous_cdis = instantaneous_crate[mask_cdis]
             dt_discharging = dt[mask_cdis]
             t_secs_discharging = np.cumsum(dt_discharging)
             if len(instantaneous_cdis) > 1:
                 Cdis = np.trapz(np.abs(instantaneous_cdis), t_secs_discharging) / (t_secs_discharging[-1] - t_secs_discharging[0])
-            else:
+            elif len(instantaneous_cdis) == 1:
                 Cdis = np.abs(instantaneous_cdis)
                 Cdis = Cdis[0]
+            else: # half cycle with no discharge segment
+                Cdis = 0
         
         stressors['soc_low'] = soc_low
         stressors['soc_high'] = soc_high
