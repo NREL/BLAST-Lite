@@ -199,3 +199,18 @@ plt.plot(t_hours/24, soc)
 plt.plot(t_hours[idx_turning_point]/24, soc[idx_turning_point], '.g')
 plt.plot(t_hours[idx_simulation_breakpoints]/24, soc[idx_simulation_breakpoints], 'or')
 """
+def assemble_one_year_input(soc, climate):
+    # weave a new data frame with hourly values
+    soc = soc['soc'].to_numpy()
+    soc = np.tile(soc, 53) # soc is one week, one year is 52 weeks + 1 day
+    soc = soc[:8760]
+    t_hours = climate['t_hours'].values
+    t_secs = t_hours * 3600
+    T_celsius = climate['T_degC'].values
+    
+    sim_input = {
+        'Time_s': t_secs,
+        'SOC': soc,
+        'Temperature_C': T_celsius,
+    }
+    return sim_input
