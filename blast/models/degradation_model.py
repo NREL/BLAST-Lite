@@ -1,5 +1,5 @@
 import numpy as np
-from ..rainflow import count_cycles, extract_cycles
+from blast.utils.rainflow import count_cycles, extract_cycles
 import pandas as pd
 
 class BatteryDegradationModel:

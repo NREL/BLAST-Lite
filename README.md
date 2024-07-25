@@ -1,9 +1,44 @@
-![BLAST-Lite](icon-blast.jpg)
+![BLAST-Lite](assets/icon-blast.jpg)
 
 ### BLAST-Lite
 Battery Lifetime Analysis and Simulation Toolsuite (BLAST) provides a library of battery lifetime and degradation models for various commercial lithium-ion batteries from recent years. Degradation models are indentified from publically available lab-based aging data using NREL's battery life model identification toolkit. The battery life models predicted the expected lifetime of batteries used in mobile or stationary applications as functions of their temperature and use (state-of-charge, depth-of-discharge, and charge/discharge rates). Model implementation is in both Python and MATLAB programming languages. The MATLAB code also provides example applications (stationary storage and EV), climate data, and simple thermal management options. For more information on battery health diagnostics, prediction, and optimization, see [NREL's Battery Lifespan](https://www.nrel.gov/transportation/battery-lifespan.html) webpage.
 
-![Example battery life predictions](example_battery_life.png)
+![Example battery life predictions](assets/example_battery_life.png)
+
+## Installation
+
+Set up and activate a Python environment (anything between Python 3.8 and 3.12):
+
+```
+conda create -n blast-lite python=3.12
+conda activate blast-lite
+```
+
+Install BLAST-Lite via PyPI.
+In the environment created and activate above, run `pip install blast`.
+
+## Quickstart
+Once the package is installed, you can generate an example usage dataset by running:
+
+```python
+from blast import utils
+data = utils.generate_example_data()
+```
+
+To see a list of available battery models, run:
+```python
+from blast import models
+models.available_models()
+```
+
+Select a model, instantiate a cell, and run the simulation:
+```python
+cell = models.Lfp_Gr_250AhPrismatic()
+cell.simulate_battery_life(data)
+```
+
+Evaluate output by slicing 
+
 
 ## Caveats
 These battery models predict 'expected life', that is, battery life under nominal conditions. Many types of battery failure will not be predicted by these models:
@@ -17,7 +52,7 @@ Battery 'warranty life' is generally much more conservative than 'expected life'
 These models are estimating cell level degradation, there will be additional performance penalties and caveats for estimating lifetime of battery packs. 
 A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell lifetime, but please support model simulations with data if you have it.
 
-## Citations:
+## Citations
  - Sony Murata LFP-Gr battery aging data and model
      - [Calendar aging data source](https://doi.org/10.1016/j.est.2018.01.019)
      - [Cycle aging data source](https://doi.org/10.1016/j.jpowsour.2019.227666)

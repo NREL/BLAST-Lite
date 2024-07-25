@@ -6,8 +6,8 @@
 # I'm not aware of any study conducting both calendar aging and cycle aging of these cells.
 
 import numpy as np
-from ..state_functions import update_power_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging widely varied SOC at 25, 40, and 50 Celsius. 300 days max.

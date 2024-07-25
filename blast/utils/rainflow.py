@@ -1,5 +1,5 @@
 """
-Implements rainflow cycle counting algorythm for fatigue analysis
+Implements rainflow cycle counting algorithm for fatigue analysis
 according to section 5.4.4 in ASTM E1049-85 (2011).
 """
 from __future__ import division

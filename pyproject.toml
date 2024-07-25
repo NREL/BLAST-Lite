@@ -1,0 +1,26 @@
+[project]
+name = "BLAST-Lite"
+version = "0.0.1"
+authors = [
+  { name="Paul Gasper", email="Paul.Gasper@nrel.gov" },
+  { name="Kandler Smith", email="Kandler.Smith@nrel.gov" },
+]
+description = "Tool to model lifetime and degradation for commercial lithium-ion batteries."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8,<=3.12.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools]
+py-modules = []
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/NREL/BLAST-Lite"

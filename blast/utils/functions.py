@@ -1,4 +1,5 @@
-# Extract time-series data for a single site from NSRDB, format for battery life
+"""Helper functions for fetching and formatting simulation input data"""
+
 import h5pyd
 import pandas as pd
 from scipy.spatial import cKDTree
@@ -6,9 +7,18 @@ from geopy.geocoders import Nominatim
 import numpy as np
 from numpy import interp
 
-def get_nsrdb_temperature_data(location):
-    # Get latitude and longitude from the location string
-    # Get temperature data from the nearest coordinates in the NSRDB
+
+def get_nsrdb_temperature_data(location: str = 'Honolulu, Hawaii') -> pd.DataFrame:
+    """
+    Get temperature time-series data from NSRDB at the nearest coordinates to the
+    provided location, and format for battery life simulation.
+
+    Args:
+        location (str)      Descriptive location string.
+    
+    Returns:
+        time_series (pd.DataFrame)  Return 
+    """
 
     def nearest_site(tree, lat_coord, lon_coord):
         lat_lon = np.array([lat_coord, lon_coord])
@@ -55,12 +65,16 @@ def get_nsrdb_temperature_data(location):
 
     return time_series
 
-def make_inputs_periodic(input_timeseries: dict, interp_time_window_hours: float):
-    # linear interpolate the last 'interp_time_window_hours' of the input to the first value to ensure periodicity
-    #   check input timeseries
-    #       needs Temperature_C, SOC, Time_s keys
-    #       values of each key all need to be numpy arrays of the same length
-    #   interpolate the last 'interp_time_window_hours' of SOC and Temperature_C values from the point at the start of 'interp_time_window_hours' to the first value of each series using the t_secs array, which is time in seconds
+
+def make_inputs_periodic(input_timeseries: dict, interp_time_window_hours: float) -> pd.DataFrame:
+    """
+    Linearly interpolate the last 'interp_time_window_hours' of the input to ensure periodicity.
+
+    Args:
+        input_timeseries (dict)     Dictionary with keys ['Temperature_C', 'SOC', 'Time_s']
+                                    and timeseries values.
+        interp_time_window_hours (float)    Number of hours to interpolate, from end of timeseries
+    """
 
     # Check if required keys are in the input_timeseries dictionary
     required_keys = ['Temperature_C', 'SOC', 'Time_s']
@@ -98,7 +112,19 @@ def make_inputs_periodic(input_timeseries: dict, interp_time_window_hours: float
 
     return input_timeseries
 
-def assemble_one_year_input(soc, climate, time_interval=3600):
+
+def assemble_one_year_input(soc: pd.DataFrame,
+                            climate: pd.DataFrame,
+                            time_interval: int = 3600) -> pd.DataFrame:
+    """
+    Construct SOC and climate data into a single dataframe,
+    linked by timestamp.
+
+    Args:
+        soc (pd.DataFrame)  Dataframe with SOC profile and 'Time_s' timestamp
+        climate (pd.DataFrame)  Dataframe with temperature data and 'Time_s' timestamp column
+        time_interval (int)     Interval at which the final data is resampled to
+    """
     # Check if 'Time_s' column exists in both data frames
     if 'Time_s' not in soc.columns:
         raise ValueError("soc dataframe does not contain 'Time_s' column.")
@@ -119,12 +145,24 @@ def assemble_one_year_input(soc, climate, time_interval=3600):
     
     return combined_df.reset_index()
 
-def tile_to_one_year(df):
+
+def tile_to_one_year(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Take a dataframe with timestamp column called 'Time_s'
+    and resample to 1 year.
+
+    Args:
+        df (pd.DataFrame)   Dataframe to cut off to 1 year.
+
+    Returns:
+        df (pd.DataFrame)   Dataframe after cutting off to 1 year.
+    """
     t_secs = df['Time_s'].values
     if t_secs[-1] < 365*24*3600:
         df = df.drop(columns="Time_s")
         df_values = df.to_numpy()
-        # Tile the inputs. When tiling time, assume the timestep between repeats is the most common timestep.
+        # Tile the inputs. When tiling time, assume the timestep
+        # between repeats is the most common timestep.
         n_tile = np.ceil((365*24*3600)/t_secs[-1]).astype(int)
         delta_t_secs = np.ediff1d(t_secs, to_begin=0)
         delta_t_secs[0] = np.median(delta_t_secs)

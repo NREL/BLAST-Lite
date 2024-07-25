@@ -5,8 +5,8 @@
 # High energy density 18650s but poor cycle life.
 
 import numpy as np
-from ..state_functions import update_power_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging varied SOC (10%, 70%, 90%) and temperature.

@@ -1,5 +1,5 @@
-# Paul Gasper, NREL
-# Functions for updating time-varying states
+"""Functions for updating time-varying states"""
+
 import numpy as np
 
 def update_power_state(y0, dx, k, p):

@@ -6,8 +6,8 @@
 # of 70%. So the model reports q and qNew, where qNew is relative to initial
 
 import numpy as np
-from ..state_functions import update_power_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging widely varied SOC and temperature.

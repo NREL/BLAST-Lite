@@ -3,8 +3,8 @@
 # https://doi.org/10.1016/j.jpowsour.2020.228566
 
 import numpy as np
-from ..state_functions import update_power_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Calendar aging varies temperature and SOC. There is almost no calendar aging impact

@@ -1,7 +1,7 @@
 # Paul Gasper, NREL
 import numpy as np
-from ..state_functions import update_power_state, update_sigmoid_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_state, update_sigmoid_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Aging test matrix varied primarly temperature, with small DOD variation.

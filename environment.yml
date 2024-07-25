@@ -6,8 +6,10 @@ dependencies:
   - numpy
   - pandas
   - matplotlib
+  - myst-parser
   - scipy
   - seaborn
+  - sphinx-rtd-theme
   - pytables
   - ipykernel
   - nrel-rex

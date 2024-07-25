@@ -6,8 +6,8 @@
 
 import numpy as np
 import scipy.stats as stats
-from ..state_functions import update_power_state
-from .degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.

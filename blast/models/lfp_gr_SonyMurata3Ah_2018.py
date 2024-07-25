@@ -11,8 +11,8 @@
 
 import numpy as np
 import scipy.stats as stats
-from ..state_functions import update_power_B_state, update_sigmoid_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.utils.state_functions import update_power_B_state, update_sigmoid_state
+from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
 # Aging test matrix varied temperature and state-of-charge for calendar aging, and
