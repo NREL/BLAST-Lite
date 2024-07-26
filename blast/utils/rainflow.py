@@ -1,7 +1,5 @@
-"""
-Implements rainflow cycle counting algorithm for fatigue analysis
-according to section 5.4.4 in ASTM E1049-85 (2011).
-"""
+"""Implements rainflow cycle counting algorithm for fatigue analysis according to section 5.4.4 in ASTM E1049-85 (2011)."""
+
 from __future__ import division
 from collections import deque, defaultdict
 import math
@@ -105,23 +103,21 @@ def extract_cycles(series):
 
 def count_cycles(series, ndigits=None, nbins=None, binsize=None):
     """Count cycles in the series.
-    Parameters
-    ----------
-    series : iterable sequence of numbers
-    ndigits : int, optional
-        Round cycle magnitudes to the given number of digits before counting.
-        Use a negative value to round to tens, hundreds, etc.
-    nbins : int, optional
-        Specifies the number of cycle-counting bins.
-    binsize : int, optional
-        Specifies the width of each cycle-counting bin
-    Arguments ndigits, nbins and binsize are mutually exclusive.
-    Returns
-    -------
-    A sorted list containing pairs of range and cycle count.
-    The counts may not be whole numbers because the rainflow counting
-    algorithm may produce half-cycles. If binning is used then ranges
-    correspond to the right (high) edge of a bin.
+    
+    Args:
+        series : iterable sequence of numbers
+        ndigits (int)   Number of digits to round cycle magnitudes to before counting.
+                        Use a negative value to round to tens, hundreds, etc.
+        nbins (int)     Number of cycle-counting bins.
+        binsize (int)   Width of each cycle-counting bin
+        
+        Arguments ndigits, nbins and binsize are mutually exclusive.
+    
+    Returns:
+        A sorted list containing pairs of range and cycle count.
+        The counts may not be whole numbers because the rainflow counting
+        algorithm may produce half-cycles. If binning is used then ranges
+        correspond to the right (high) edge of a bin.
     """
     if sum(value is not None for value in (ndigits, nbins, binsize)) > 1:
         raise ValueError(

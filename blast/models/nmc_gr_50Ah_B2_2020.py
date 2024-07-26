@@ -5,8 +5,6 @@
 # This is for the 'NMC-Gr B2' cell reported in the paper.
 
 import numpy as np
-import scipy.stats as stats
-from blast.utils.state_functions import update_power_state
 from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -156,8 +154,8 @@ class NMC_Gr_50Ah_B2(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days/1e4, r['kcal'], p['pcal'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc/1e4, r['kcyc'], p['pcyc'])
+        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days/1e4, r['kcal'], p['pcal'])
+        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], delta_efc/1e4, r['kcyc'], p['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

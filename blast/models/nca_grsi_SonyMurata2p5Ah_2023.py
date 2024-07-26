@@ -10,7 +10,6 @@
 #   Mechanistic calendar aging model (considers impact of capacity check frequency): https://doi.org/10.1016/j.jpowsour.2023.233208
 
 import numpy as np
-from blast.utils.state_functions import update_sigmoid_state
 from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -246,8 +245,8 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
         states = self.states
 
         # Capacity
-        dq_t = self._degradation_scalar * update_sigmoid_state(states['qLoss_t'][-1], delta_t_days/5e3, r['kcal'], p['q2'], r['pcal'])
-        dq_EFC = self._degradation_scalar * update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc/1e5, r['kcyc'], p['q4'], r['pcyc'])
+        dq_t = self._degradation_scalar * self.update_sigmoid_state(states['qLoss_t'][-1], delta_t_days/5e3, r['kcal'], p['q2'], r['pcal'])
+        dq_EFC = self._degradation_scalar * self.update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc/1e5, r['kcyc'], p['q4'], r['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

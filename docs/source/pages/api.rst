@@ -5,11 +5,27 @@ API Reference
 Core module
 -----------------
 
-blast.models module
+utils module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-.. automodule:: blast.models.lfp_gr_250AhPrismatic_2019
+.. automodule:: blast.utils.demo
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: blast.utils.functions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: blast.utils.rainflow
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: blast.utils.state_functions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   

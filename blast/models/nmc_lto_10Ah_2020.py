@@ -3,7 +3,6 @@
 # https://doi.org/10.1016/j.jpowsour.2020.228566
 
 import numpy as np
-from blast.utils.state_functions import update_power_state
 from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -157,9 +156,9 @@ class Nmc_Lto_10Ah_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t_gain = self._degradation_scalar * update_power_state(states['qGain_t'][-1], delta_t_days, r['alpha'], p['alpha_p'])
-        dq_t_loss = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['beta'], p['beta_p'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, r['gamma'], p['gamma_p'])
+        dq_t_gain = self._degradation_scalar * self.update_power_state(states['qGain_t'][-1], delta_t_days, r['alpha'], p['alpha_p'])
+        dq_t_loss = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days, r['beta'], p['beta_p'])
+        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], delta_efc, r['gamma'], p['gamma_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t_loss, dq_t_gain, dq_EFC])

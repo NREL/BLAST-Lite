@@ -11,7 +11,6 @@
 
 import numpy as np
 import scipy.stats as stats
-from blast.utils.state_functions import update_power_B_state, update_sigmoid_state
 from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -241,10 +240,10 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
         states = self.states
 
         # Capacity
-        dq_LLI_t = self._degradation_scalar * update_sigmoid_state(states['qLoss_LLI_t'][-1], delta_t_days, r['q1'], p['q2'], r['q3'])
-        dq_LLI_EFC = self._degradation_scalar * update_power_B_state(states['qLoss_LLI_EFC'][-1], delta_efc, r['q5'], p['q6'])
+        dq_LLI_t = self._degradation_scalar * self.update_sigmoid_state(states['qLoss_LLI_t'][-1], delta_t_days, r['q1'], p['q2'], r['q3'])
+        dq_LLI_EFC = self._degradation_scalar * self.update_power_B_state(states['qLoss_LLI_EFC'][-1], delta_efc, r['q5'], p['q6'])
         if delta_efc / delta_t_days > 3: # only evalaute if more than 3 full cycles per day
-            dq_BreakIn_EFC = self._degradation_scalar * update_sigmoid_state(states['qLoss_BreakIn_EFC'][-1], delta_efc, r['q7'], p['q8'], p['q9'])
+            dq_BreakIn_EFC = self._degradation_scalar * self.update_sigmoid_state(states['qLoss_BreakIn_EFC'][-1], delta_efc, r['q7'], p['q8'], p['q9'])
         else:
             dq_BreakIn_EFC = 0
 

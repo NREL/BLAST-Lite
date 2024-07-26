@@ -4,7 +4,6 @@
 # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
 
 import numpy as np
-from blast.utils.state_functions import update_power_state
 from .degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -159,8 +158,8 @@ class Lfp_Gr_250AhPrismatic(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['kcal'], p['pcal'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, r['kcyc'], p['pcyc'])
+        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days, r['kcal'], p['pcal'])
+        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], delta_efc, r['kcyc'], p['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

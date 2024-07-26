@@ -6,7 +6,6 @@
 # of 70%. So the model reports q and qNew, where qNew is relative to initial
 
 import numpy as np
-from blast.utils.state_functions import update_power_state
 from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -140,8 +139,8 @@ class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
+        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
+        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

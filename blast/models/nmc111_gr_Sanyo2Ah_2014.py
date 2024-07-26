@@ -3,7 +3,6 @@
 # http://dx.doi.org/10.1016/j.jpowsour.2014.02.012
 
 import numpy as np
-from blast.utils.state_functions import update_power_state
 from blast.models.degradation_model import BatteryDegradationModel
 
 # EXPERIMENTAL AGING DATA SUMMARY:
@@ -196,10 +195,10 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['alpha_cap'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], Ah_throughput, r['beta_cap'], p['qcyc_p'])
+        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days, r['alpha_cap'], p['qcal_p'])
+        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], Ah_throughput, r['beta_cap'], p['qcyc_p'])
         # Resistance
-        dr_t = self._degradation_scalar * update_power_state(states['rGain_t'][-1], delta_t_days, r['alpha_res'], p['rcal_p'])
+        dr_t = self._degradation_scalar * self.update_power_state(states['rGain_t'][-1], delta_t_days, r['alpha_res'], p['rcal_p'])
         dr_EFC = self._degradation_scalar * r['beta_res'] * Ah_throughput
 
         # Accumulate and store states
