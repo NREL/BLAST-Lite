@@ -7,24 +7,32 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging varied SOC (10%, 70%, 90%) and temperature.
-# Cycle aging varied temperature and C-rates; all DOD is 80% (10%-90%). NO ACCELERATED FADE OBSERVED.
-# Relative discharge capacity is reported from measurements recorded at 25 Celsius and C/20 rate.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
-
-# MODEL LIMITATIONS
-# Cycle degradation predictions WILL NOT PREDICT KNEE-POINT due to limited data.
-# OPERATION AT HIGH DOD PREDCTIONS ARE LIKELY INACCURATE (it is unclear what voltage window corresponds to SOCs defined in the test data).
-# NMC811 is known to degrade quickly at voltages above 4.1 V.
 
 class Nmc811_GrSi_LGMJ1_4Ah_Battery(BatteryDegradationModel):
+    """
+    Model fit to LG MJ1 cell aging data reported as part of the EU EVERLASTING battery project, report D2.3
+    https://everlasting-project.eu/wp-content/uploads/2020/03/EVERLASTING_D2.3_final_20200228.pdf
+    Cell tests were reported in early 2020, so likely 2018 or 2019 LG MJ1 cells.
+    High energy density 18650s but poor cycle life.
 
-    def __init__(self, degradation_scalar=1, label="NMC811-GrSi LG MJ1"):
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Calendar aging varied SOC (10%, 70%, 90%) and temperature.
+            Cycle aging varied temperature and C-rates; all DOD is 80% (10%-90%). NO ACCELERATED FADE OBSERVED.
+            Relative discharge capacity is reported from measurements recorded at 25 Celsius and C/20 rate.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
+
+        MODEL LIMITATIONS
+            Cycle degradation predictions WILL NOT PREDICT KNEE-POINT due to limited data.
+            OPERATION AT HIGH DOD PREDCTIONS ARE LIKELY INACCURATE (it is unclear what voltage window corresponds to SOCs defined in the test data).
+            NMC811 is known to degrade quickly at voltages above 4.1 V.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NMC811-GrSi LG MJ1"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),

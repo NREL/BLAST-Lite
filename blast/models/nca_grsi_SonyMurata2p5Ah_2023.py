@@ -12,27 +12,41 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Aging test matrix varied temperature and state-of-charge for calendar aging, and
-# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
-# For calendar aging, in addition to temperature and SOC, capacity-check frequency was also varied. 
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
-# charge and discharge C-rates.
-
-# MODEL LIMITATIONS
-# I did not model the impact of capacity check frequency, only using the 6 week capacity check data.
-# See https://doi.org/10.1016/j.jpowsour.2023.233208 for a detailed consideration of the capacity check frequency impact on aging.
-# Only one cycling cell in the data shows 'knee-over' behavior, making empirical model identification of this behavior challenging.
-# I simply neglected the knee over; this knee occurs at ~80% capacity fade, so note that predictions of degradation at maximum
-# DOD and below 80% capacity should not be believed.
 
 class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1, label="NCA-GrSi Sony-Murata"):
+    """
+    Model predicting the degradation of Sony-Murata US18650VTC5A 3.5 Ah NCA-GrSi cylindrical cells.
+    Relatively high power cells, with 1.4 wt% Si in the graphite-si composite negative electrode.
+    (Maximum continuous charge rate of 2C and max continuous discharge rate of 10C, even at 5 degC)
+    Data is from Technical University of Munich, reported in studies led by Leo Wildfeuer and Alexander Karger.
+    Accelerated aging test data reported in https://doi.org/10.1016/j.jpowsour.2022.232498
+    The model here was identifed using AI-Batt at NREL. Note that the TUM authors have put more effort
+    into model identification on this data set, see the following papers for more detailed models identified on this data set:
+    Mechanistic cycle aging model (LLI, LAM_PE, LAM_(NE,Gr), LAM_(NE,Si)): https://doi.org/10.1016/j.jpowsour.2023.233947
+    Mechanistic calendar aging model (considers impact of capacity check frequency): https://doi.org/10.1016/j.jpowsour.2023.233208
+    
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Aging test matrix varied temperature and state-of-charge for calendar aging, and
+            varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
+            For calendar aging, in addition to temperature and SOC, capacity-check frequency was also varied. 
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
+            charge and discharge C-rates.
+
+        MODEL LIMITATIONS
+            I did not model the impact of capacity check frequency, only using the 6 week capacity check data.
+            See https://doi.org/10.1016/j.jpowsour.2023.233208 for a detailed consideration of the capacity check frequency impact on aging.
+            Only one cycling cell in the data shows 'knee-over' behavior, making empirical model identification of this behavior challenging.
+            I simply neglected the knee over; this knee occurs at ~80% capacity fade, so note that predictions of degradation at maximum
+            DOD and below 80% capacity should not be believed.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NCA-GrSi Sony-Murata"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),

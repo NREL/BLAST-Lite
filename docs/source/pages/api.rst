@@ -2,11 +2,8 @@ API Reference
 =================
 
 
-Core module
+models
 -----------------
-
-models module
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: blast.models.degradation_model
    :members:
@@ -74,8 +71,8 @@ models module
    :show-inheritance:
 
 
-utils module
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+utils
+-----------------
 
 
 .. automodule:: blast.utils.demo

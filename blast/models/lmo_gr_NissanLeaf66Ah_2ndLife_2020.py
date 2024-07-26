@@ -8,21 +8,30 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging widely varied SOC and temperature.
-# Cycle aging is only at a single condition (25 Celsius, 100% DOD, 1C-1C).
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate is only a function equivalent full cycles.
-
-# MODEL LIMITATIONS
-# Cycling degradation IS ONLY A FUNCTION OF CHARGE THROUGHPUT due to limited aging data.
-# Cycling degradation predictions ARE ONLY VALID NEAR 25 CELSIUS, 100% DOD, 1 C CHARGE/DISCHARGE RATE.
 
 class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
+    """
+    Model fit to SECOND LIFE data on Nissan Leaf half-modules (2p cells) by Braco et al.
+    https://doi.org/10.1109/EEEIC/ICPSEUROPE54979.2022.9854784 (calendar aging data)
+    https://doi.org/10.1016/j.est.2020.101695 (cycle aging data)
+    Note that these cells are already hugely degraded, starting out at an average relative capacity
+    of 70%. So the model reports q and qNew, where qNew is relative to initial.
 
-    def __init__(self, degradation_scalar=1, label="LMO-Gr Nissan Leaf"):
+    .. note ::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Calendar aging widely varied SOC and temperature.
+            Cycle aging is only at a single condition (25 Celsius, 100% DOD, 1C-1C).
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate is only a function equivalent full cycles.
+
+        MODEL LIMITATIONS
+            Cycling degradation IS ONLY A FUNCTION OF CHARGE THROUGHPUT due to limited aging data.
+            Cycling degradation predictions ARE ONLY VALID NEAR 25 CELSIUS, 100% DOD, 1 C CHARGE/DISCHARGE RATE.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "LMO-Gr Nissan Leaf"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),

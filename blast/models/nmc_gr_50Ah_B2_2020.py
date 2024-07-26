@@ -7,28 +7,35 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
-# Aging test matrix varied temperature and state-of-charge for calendar aging, and
-# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
-# charge and discharge C-rates.
-
-# MODEL LIMITATIONS
-# Charging and discharging rates were conservative, following cycling protocols as suggested by the
-# cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
-# Charging at 10 degC was limited to a very conservative rate of 0.3C by the manufacturer. Simulations with
-# low temperatures and charging rates above C/3 will likely give inaccurate predictions.
-
 
 class NMC_Gr_50Ah_B2(BatteryDegradationModel):
-    # Model predicting degradation of 'NMC-Gr B2' cells from https://doi.org/10.1016/j.est.2023.109042.
+    """
+    Model predicting the degradation of Large format pouch 'NMC-Gr B2' cells from a large manufacturer,
+    with ~50 Ah capacity and an energy-to-power ratio of 14 h^-1 (balance of energy and power,
+    questionable durability/performance for fast charging).
+    Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+    This is for the 'NMC-Gr B2' cell reported in the paper.
 
-    def __init__(self, degradation_scalar=1, label="NMC-Gr B2 50Ah"):
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+            Aging test matrix varied temperature and state-of-charge for calendar aging, and
+            varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
+            charge and discharge C-rates.
+
+        MODEL LIMITATIONS
+            Charging and discharging rates were conservative, following cycling protocols as suggested by the
+            cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
+            Charging at 10 degC was limited to a very conservative rate of 0.3C by the manufacturer. Simulations with
+            low temperatures and charging rates above C/3 will likely give inaccurate predictions.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NMC-Gr B2 50Ah"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),

@@ -13,47 +13,52 @@ import numpy as np
 import scipy.stats as stats
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Aging test matrix varied temperature and state-of-charge for calendar aging, and
-# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
-# There is NO LOW TEMPERATURE cycling aging data, i.e., no lithium-plating induced by
-# kinetic limitations on cell performance; CYCLING WAS ONLY DONE AT 25 CELSIUS AND 45 CELSIUS,
-# so any model predictions at low temperature cannot incorporate low temperature degradation modes.
-# Discharge capacity
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
-# charge and discharge C-rates.
-
-# MODEL LIMITATIONS
-# There is no influence of TEMPERATURE on CYCLING DEGRADATION RATE due to limited data. This is
-# NOT PHYSICALLY REALISTIC AND IS BASED ON LIMITED DATA.
 
 class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
-    # Model predicting the degradation of Sony-Murata 3 Ah LFP-Gr cylindrical cells.
-    # Data is from Technical University of Munich, reported in studies led by Maik Naumann.
-    # Capacity model identification was conducted at NREL. Resistance model is from Naumann et al.
-    # Naumann et al used an interative fitting procedure, but it was found that lower model error could be
-    # achieved by simply reoptimizing all resistance growth parameters to the entire data set.
-    # Calendar aging data source: https://doi.org/10.1016/j.est.2018.01.019
-    # Cycle aging data source: https://doi.org/10.1016/j.jpowsour.2019.227666
-    # Model identification source: https://doi.org/10.1149/1945-7111/ac86a8
-    # Degradation rate is a function of the aging stressors, i.e., ambient temperature and use.
-    # The state of the battery is updated throughout the lifetime of the cell.
-    # Performance metrics are capacity and DC resistance. These metrics change as a function of the
-    # cell's current degradation state, as well as the ambient temperature. The model predicts time and 
-    # cycling dependent degradation. Cycling dependent degradation includes a break-in mechanism as well
-    # as long term cycling fade; the break-in mechanism strongly influenced results of the accelerated
-    # aging test, but is not expected to have much influence on real-world applications.
-    # Parameters to modify to change fade rates:
-    #   q1_b0: rate of capacity loss due to calendar degradation
-    #   q5_b0: rate of capacity loss due to cycling degradation
-    #   k_ref_r_cal: rate of resistance growth due to calendar degradation
-    #   A_r_cyc: rate of resistance growth due to cycling degradation
+    """
+    Model predicting the degradation of Sony-Murata 3 Ah LFP-Gr cylindrical cells.
+    Data is from Technical University of Munich, reported in studies led by Maik Naumann.
+    Capacity model identification was conducted at NREL. Resistance model is from Naumann et al.
+    Naumann et al used an interative fitting procedure, but it was found that lower model error could be
+    achieved by simply reoptimizing all resistance growth parameters to the entire data set.
+    Calendar aging data source: https://doi.org/10.1016/j.est.2018.01.019
+    Cycle aging data source: https://doi.org/10.1016/j.jpowsour.2019.227666
+    Model identification source: https://doi.org/10.1149/1945-7111/ac86a8
 
-    def __init__(self, degradation_scalar=1, label="LFP-Gr Sony-Murata"):
+    Degradation rate is a function of the aging stressors, i.e., ambient temperature and use.
+    The state of the battery is updated throughout the lifetime of the cell.
+    Performance metrics are capacity and DC resistance. These metrics change as a function of the
+    cell's current degradation state, as well as the ambient temperature. The model predicts time and 
+    cycling dependent degradation. Cycling dependent degradation includes a break-in mechanism as well
+    as long term cycling fade; the break-in mechanism strongly influenced results of the accelerated
+    aging test, but is not expected to have much influence on real-world applications.
+    Parameters to modify to change fade rates:
+    - q1_b0: rate of capacity loss due to calendar degradation
+    - q5_b0: rate of capacity loss due to cycling degradation
+    - k_ref_r_cal: rate of resistance growth due to calendar degradation
+    - A_r_cyc: rate of resistance growth due to cycling degradation
+
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Aging test matrix varied temperature and state-of-charge for calendar aging, and
+            varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
+            There is NO LOW TEMPERATURE cycling aging data, i.e., no lithium-plating induced by
+            kinetic limitations on cell performance; CYCLING WAS ONLY DONE AT 25 CELSIUS AND 45 CELSIUS,
+            so any model predictions at low temperature cannot incorporate low temperature degradation modes.
+            Discharge capacity
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
+            charge and discharge C-rates.
+
+        MODEL LIMITATIONS
+            There is no influence of TEMPERATURE on CYCLING DEGRADATION RATE due to limited data. This is
+            NOT PHYSICALLY REALISTIC AND IS BASED ON LIMITED DATA.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "LFP-Gr Sony-Murata"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_LLI_t': np.array([0]),
@@ -154,7 +159,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
             'D_r_cyc': 0.91882
         }
     
-    def update_rates(self, stressors):
+    def update_rates(self, stressors: dict):
         # Calculate and update battery degradation rates based on stressor values
         # Inputs:
         #   stressors (dict): output from extract_stressors
@@ -225,7 +230,7 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
     
-    def update_states(self, stressors):
+    def update_states(self, stressors: dict):
         # Update the battery states, based both on the degradation state as well as the battery performance
         # at the ambient temperature, T_celsius
         # Inputs:

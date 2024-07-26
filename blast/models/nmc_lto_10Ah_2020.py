@@ -5,25 +5,31 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging varies temperature and SOC. There is almost no calendar aging impact
-# at all until 80 Celsius.
-# Cycle aging varies temperature, C-rate, and depth-of-discharge.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
-
-# MODEL LIMITATIONS
-# Calendar aging has competition between capacity gain and capacity loss. There is an experimental
-# case (80 Celsius, 5% SOC) that has complex behavior not modeled here.
-# Astonishingly enough, the cycling degradation model is actually _overestimating_ capacity fade for most cases.
-# The exception here is at very high temperature (60+ Celsius), where the fade is high, but not quite as high as observed degradation.
 
 class Nmc_Lto_10Ah_Battery(BatteryDegradationModel):
+    """
+    Model fit to data reported by Bank et al from commercial NMC-LTO cells.
+    https://doi.org/10.1016/j.jpowsour.2020.228566
 
-    def __init__(self, degradation_scalar=1, label="NMC-LTO"):
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Calendar aging varies temperature and SOC. There is almost no calendar aging impact
+            at all until 80 Celsius.
+            Cycle aging varies temperature, C-rate, and depth-of-discharge.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
+
+        MODEL LIMITATIONS
+            Calendar aging has competition between capacity gain and capacity loss. There is an experimental
+            case (80 Celsius, 5% SOC) that has complex behavior not modeled here.
+            Astonishingly enough, the cycling degradation model is actually _overestimating_ capacity fade for most cases.
+            The exception here is at very high temperature (60+ Celsius), where the fade is high, but not quite as high as observed degradation.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NMC-LTO"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),

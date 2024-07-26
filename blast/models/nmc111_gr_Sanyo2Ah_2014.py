@@ -5,32 +5,36 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging varied SOC at 50 Celsius, and temperature at 50% state-of-charge.
-# Cycle aging varied depth-of-discharge and average state-of-charge at 35 Celsius at
-# charge and discharge rates of 1C. 
-# Relative discharge capacity is reported from measurements recorded at 35 Celsius and 1C rate.
-# Relative DC resistance is reported after fitting of 10s 1C discharge pulses near 50% state-of-charge.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average voltage and depth-of-discharge.
-
-# MODEL LIMITATIONS
-# Cycle degradation predictions are NOT SENSITIVE TO TEMPERATURE OR C-RATE. Cycling degradation predictions
-# are ONLY ACCURATE NEAR 1C RATE AND 35 CELSIUS CELL TEMPERATURE. 
 
 class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
-    # Model predicting the degradation of Sanyo UR18650E cells, published by Schmalsteig et al:
-    # http://dx.doi.org/10.1016/j.jpowsour.2014.02.012.
-    # More detailed analysis of cell performance and voltage vs. state-of-charge data was copied from
-    # Ecker et al: http://dx.doi.org/10.1016/j.jpowsour.2013.09.143 (KNEE POINTS OBSERVED IN ECKER ET AL
-    # AT HIGH DEPTH OF DISCHARGE WERE SIMPLY NOT ADDRESSED DURING MODEL FITTING BY SCHMALSTEIG ET AL).
-    # Voltage lookup table here use data from Ecker et al for 0/10% SOC, and other values were extracted
-    # from Figure 1 in Schmalsteig et al using WebPlotDigitizer.
+    """
+    Model predicting the degradation of Sanyo UR18650E cells, published by Schmalsteig et al:
+    http://dx.doi.org/10.1016/j.jpowsour.2014.02.012.
+    More detailed analysis of cell performance and voltage vs. state-of-charge data was copied from
+    Ecker et al: http://dx.doi.org/10.1016/j.jpowsour.2013.09.143 (KNEE POINTS OBSERVED IN ECKER ET AL
+    AT HIGH DEPTH OF DISCHARGE WERE SIMPLY NOT ADDRESSED DURING MODEL FITTING BY SCHMALSTEIG ET AL).
+    Voltage lookup table here use data from Ecker et al for 0/10% SOC, and other values were extracted
+    from Figure 1 in Schmalsteig et al using WebPlotDigitizer.
 
-    def __init__(self, degradation_scalar=1, label="NMC111-Gr Sanyo"):
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Calendar aging varied SOC at 50 Celsius, and temperature at 50% state-of-charge.
+            Cycle aging varied depth-of-discharge and average state-of-charge at 35 Celsius at
+            charge and discharge rates of 1C. 
+            Relative discharge capacity is reported from measurements recorded at 35 Celsius and 1C rate.
+            Relative DC resistance is reported after fitting of 10s 1C discharge pulses near 50% state-of-charge.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of average voltage and depth-of-discharge.
+
+        MODEL LIMITATIONS
+            Cycle degradation predictions are NOT SENSITIVE TO TEMPERATURE OR C-RATE. Cycling degradation predictions
+            are ONLY ACCURATE NEAR 1C RATE AND 35 CELSIUS CELL TEMPERATURE. 
+    """
+    
+    def __init__(self, degradation_scalar: float = 1, label: str = "NMC111-Gr Sanyo"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),

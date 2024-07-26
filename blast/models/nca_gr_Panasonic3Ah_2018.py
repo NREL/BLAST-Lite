@@ -8,25 +8,37 @@
 import numpy as np
 from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging widely varied SOC at 25, 40, and 50 Celsius. 300 days max.
-# Cycle aging varied temperature and C-rates, and DOD. Some accelerating fade is observed
-# at room temperature and high DODs but isn't modeled well here. That's not a huge problem,
-# because the modeled lifetime is quite short anyways.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
-
-# MODEL LIMITATIONS
-# Cycle degradation predictions WILL NOT PREDICT KNEE-POINT due to limited data.
-# Cycle aging is only modeled at 25, 35, and 45 Celsius, PREDICTIONS OUTSIDE THIS 
-# TEMPERATURE RANGE MAY BE OPTIMISTIC.
 
 class Nca_Gr_Panasonic3Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1, label="NCA-Gr Panasonic"):
+    """
+    Model fit to Panasonic 18650B NCA-Gr cells. High-ish energy density 18650 cells with
+    adequate lifetime.
+    Calendar data is reported by Keil et al (https://dx.doi.org/10.1149/2.0411609jes)
+    Cycling data is reported by Preger et al (https://doi.org/10.1149/1945-7111/abae37) and
+    is available at batteryarchive.com.
+    The authors of BLAST-Lite are not aware of any study conducting both calendar aging and
+    cycle aging of these cells.
+
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Calendar aging widely varied SOC at 25, 40, and 50 Celsius. 300 days max.
+            Cycle aging varied temperature and C-rates, and DOD. Some accelerating fade is observed
+            at room temperature and high DODs but isn't modeled well here. That's not a huge problem,
+            because the modeled lifetime is quite short anyways.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of C-rate, temperature, and depth-of-discharge (DOD dependence is assumed to be linear, no aging data)
+
+        MODEL LIMITATIONS
+            Cycle degradation predictions WILL NOT PREDICT KNEE-POINT due to limited data.
+            Cycle aging is only modeled at 25, 35, and 45 Celsius, PREDICTIONS OUTSIDE THIS 
+            TEMPERATURE RANGE MAY BE OPTIMISTIC.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NCA-Gr Panasonic"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
