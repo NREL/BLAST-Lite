@@ -159,6 +159,13 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
         # Inputs:
         #   stressors (dict): output from extract_stressors
 
+        def _sigmoid(x, alpha, beta, gamma):
+            return 2*alpha*(1/2 - 1/(1 + np.exp((beta*x)**gamma)))
+
+        def _skewnormpdf(x, skew, width):
+            x_prime = (x-0.5)/width
+            return 2 * stats.norm.pdf(x_prime) * stats.norm.cdf(skew * (x_prime))
+
         # Unpack stressors
         t_secs = stressors["t_secs"]
         delta_t_secs = t_secs[-1] - t_secs[0]
@@ -191,9 +198,9 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
             )
         q7 = np.abs(
             p['q7_b0']
-            * skewnormpdf(soc, p['q7_soc_skew'], p['q7_soc_width'])
-            * skewnormpdf(dod, p['q7_dod_skew'], p['q7_dod_width'])
-            * sigmoid(dod, 1, p['q7_dod_growth'], 1)
+            * _skewnormpdf(soc, p['q7_soc_skew'], p['q7_soc_width'])
+            * _skewnormpdf(dod, p['q7_dod_skew'], p['q7_dod_width'])
+            * _sigmoid(dod, 1, p['q7_dod_growth'], 1)
             )
         k_temp_r_cal = (
             p['k_ref_r_cal']
@@ -277,10 +284,3 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
         # Store results
         for k, v in zip(list(self.outputs.keys()), out):
             self.outputs[k] = np.append(self.outputs[k], v)
-
-def sigmoid(x, alpha, beta, gamma):
-    return 2*alpha*(1/2 - 1/(1 + np.exp((beta*x)**gamma)))
-
-def skewnormpdf(x, skew, width):
-    x_prime = (x-0.5)/width
-    return 2 * stats.norm.pdf(x_prime) * stats.norm.cdf(skew * (x_prime))
