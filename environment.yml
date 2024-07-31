@@ -9,6 +9,7 @@ dependencies:
   - myst-parser
   - scipy
   - seaborn
+  - sphinx-copybutton
   - sphinx-rtd-theme
   - pytables
   - ipykernel

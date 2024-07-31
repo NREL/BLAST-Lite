@@ -4,13 +4,18 @@ from __future__ import division
 from collections import deque, defaultdict
 import math
 
+
 def _get_round_function(ndigits=None):
     if ndigits is None:
+
         def func(x):
             return x
+
     else:
+
         def func(x):
             return round(x, ndigits)
+
     return func
 
 
@@ -33,7 +38,7 @@ def reversals(series):
     if x_last is None or x is None:
         return
 
-    d_last = (x - x_last)
+    d_last = x - x_last
 
     yield 0, x_last
     index = None
@@ -103,16 +108,16 @@ def extract_cycles(series):
 
 def count_cycles(series, ndigits=None, nbins=None, binsize=None):
     """Count cycles in the series.
-    
+
     Args:
         series : iterable sequence of numbers
         ndigits (int)   Number of digits to round cycle magnitudes to before counting.
                         Use a negative value to round to tens, hundreds, etc.
         nbins (int)     Number of cycle-counting bins.
         binsize (int)   Width of each cycle-counting bin
-        
+
         Arguments ndigits, nbins and binsize are mutually exclusive.
-    
+
     Returns:
         A sorted list containing pairs of range and cycle count.
         The counts may not be whole numbers because the rainflow counting
@@ -120,14 +125,11 @@ def count_cycles(series, ndigits=None, nbins=None, binsize=None):
         correspond to the right (high) edge of a bin.
     """
     if sum(value is not None for value in (ndigits, nbins, binsize)) > 1:
-        raise ValueError(
-            "Arguments ndigits, nbins and binsize are mutually exclusive"
-        )
+        raise ValueError("Arguments ndigits, nbins and binsize are mutually exclusive")
 
     counts = defaultdict(float)
     cycles = (
-        (rng, count)
-        for rng, mean, count, i_start, i_end in extract_cycles(series)
+        (rng, count) for rng, mean, count, i_start, i_end in extract_cycles(series)
     )
 
     if nbins is not None:

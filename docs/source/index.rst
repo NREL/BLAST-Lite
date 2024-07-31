@@ -8,6 +8,7 @@ Welcome to BLAST-Lite's documentation!
    :caption: Contents:
 
    pages/readme
+   pages/user_guide
    pages/api
 
 Indices and tables

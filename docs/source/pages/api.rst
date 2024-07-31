@@ -75,10 +75,17 @@ utils
 -----------------
 
 
+demo
+^^^^^^^^^^^^^^^^^
+
+
 .. automodule:: blast.utils.demo
    :members:
    :undoc-members:
    :show-inheritance:
+
+data
+^^^^^^^^^^^^^^^^^
 
 .. automodule:: blast.utils.functions
    :members:
