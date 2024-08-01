@@ -1,6 +1,6 @@
 [project]
 name = "BLAST-Lite"
-version = "0.0.2"
+version = "0.0.9"
 authors = [
   { name="Paul Gasper", email="Paul.Gasper@nrel.gov" },
   { name="Kandler Smith", email="Kandler.Smith@nrel.gov" },
@@ -21,7 +21,6 @@ dependencies = [
     "pandas",
     "matplotlib",
     "scipy",
-    "pytables",
     "nrel-rex",
     "geopy",
 ]
@@ -35,8 +34,12 @@ dev = [
     "ipykernel",
 ]
 
-[tool.setuptools]
-py-modules = []
+[tool.setuptools.packages.find]
+where = ["."] # list of folders that contain the packages (["."] by default)
+include = [
+    "blast*",
+] # package names should match these glob patterns (["*"] by default)
+namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -44,6 +47,3 @@ build-backend = "setuptools.build_meta"
 
 [project.urls]
 Homepage = "https://github.com/NREL/BLAST-Lite"
-
-[tool.spin]
-package = "blast"
