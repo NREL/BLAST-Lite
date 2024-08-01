@@ -90,7 +90,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap(self):
+    def cap(self):
         return 2.15
 
     # SOC index
@@ -186,7 +186,7 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
         # Unpack stressors
         delta_t_days = stressors["delta_t_days"]
         delta_efc = stressors["delta_efc"]
-        Ah_throughput = delta_efc * 2 * self._cap
+        Ah_throughput = delta_efc * 2 * self.cap
 
         # Grab parameters
         p = self._params_life
@@ -199,10 +199,10 @@ class Nmc111_Gr_Sanyo2Ah_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days, r['alpha_cap'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], Ah_throughput, r['beta_cap'], p['qcyc_p'])
+        dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days, r['alpha_cap'], p['qcal_p'])
+        dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], Ah_throughput, r['beta_cap'], p['qcyc_p'])
         # Resistance
-        dr_t = self._degradation_scalar * self.update_power_state(states['rGain_t'][-1], delta_t_days, r['alpha_res'], p['rcal_p'])
+        dr_t = self._degradation_scalar * self._update_power_state(states['rGain_t'][-1], delta_t_days, r['alpha_res'], p['rcal_p'])
         dr_EFC = self._degradation_scalar * r['beta_res'] * Ah_throughput
 
         # Accumulate and store states

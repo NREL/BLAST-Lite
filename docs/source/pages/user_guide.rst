@@ -160,11 +160,11 @@ Select a model and instantiate a cell:
     
     cell = Nmc111_Gr_Kokam75Ah_Battery()
 
-All battery models have five builtin properties stored as attributes of the model class. The first is **_cap**, which is the nominal discharge capacity of the cell in Amp hours.
+All battery models have five builtin properties stored as attributes of the model class. The first is **cap**, which is the nominal discharge capacity of the cell in Amp hours.
 
 .. code:: python
 
-    >> cell._cap
+    >> cell.cap
 
 *75*
 

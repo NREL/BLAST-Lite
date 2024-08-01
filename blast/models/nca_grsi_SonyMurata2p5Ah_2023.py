@@ -101,7 +101,7 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap(self):
+    def cap(self):
         return 2.5
 
     # Define life model parameters
@@ -149,7 +149,7 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
         if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
             raise ValueError('All input timeseries must be the same length')
         
-        stressors = self.extract_stressors(t_secs, soc, T_celsius)
+        stressors = self._extract_stressors(t_secs, soc, T_celsius)
         # Unpack and store some stressors for debugging or plotting
         delta_t_days = stressors["delta_t_days"]
         delta_efc = stressors["delta_efc"]
@@ -259,8 +259,8 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
         states = self.states
 
         # Capacity
-        dq_t = self._degradation_scalar * self.update_sigmoid_state(states['qLoss_t'][-1], delta_t_days/5e3, r['kcal'], p['q2'], r['pcal'])
-        dq_EFC = self._degradation_scalar * self.update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc/1e5, r['kcyc'], p['q4'], r['pcyc'])
+        dq_t = self._degradation_scalar * self._update_sigmoid_state(states['qLoss_t'][-1], delta_t_days/5e3, r['kcal'], p['q2'], r['pcal'])
+        dq_EFC = self._degradation_scalar * self._update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc/1e5, r['kcyc'], p['q4'], r['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])
@@ -284,9 +284,9 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
             self.outputs[k] = np.append(self.outputs[k], v)
     
     @staticmethod
-    def extract_stressors(t_secs, soc, T_celsius):
+    def _extract_stressors(t_secs, soc, T_celsius):
         # extract the usual stressors
-        stressors = BatteryDegradationModel.extract_stressors(t_secs, soc, T_celsius)
+        stressors = BatteryDegradationModel._extract_stressors(t_secs, soc, T_celsius)
         # model specific stressors: soc_low, soc_high, Cchg, Cdis
         soc_low = np.min(soc)
         soc_high = np.max(soc)

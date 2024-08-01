@@ -6,11 +6,10 @@ from typing import Union
 
 class BatteryDegradationModel:
     def __init__(self):
-        # States: Internal states of the battery model
         self.states = {}
-        # Outputs: Battery properties derived from state values
+        """dict: Internal states of the battery model"""
         self.outputs = {}
-        # Stressors: History of stressors on the battery
+        """dict: Battery properties derived from state values"""
         self.stressors = {
             "delta_t_days": np.array([np.nan]),
             "t_days": np.array([0]),
@@ -22,18 +21,19 @@ class BatteryDegradationModel:
             "dod": np.array([np.nan]),
             "Crate": np.array([np.nan]),
         }
-        # Rates: History of stressor-dependent degradation rates
+        """dict: History of stressors on the battery"""
         self.rates = {}
-        # Expermental range: details on the range of experimental conditions, i.e.,
-        # the range we expect the model to be valid in
+        """dict: History of stressor-dependent degradation rates"""
         self.experimental_range = {}
+        """dict: details on the range of experimental conditions, i.e.,
+        the range we expect the model to be valid in"""
 
-        # plotting label
         self._label = ""
+        """str: Model name for plotting"""
 
     # Functions for updating time-varying states
     @staticmethod
-    def update_power_state(y0: float, dx: float, k: float, p: float):
+    def _update_power_state(y0: float, dx: float, k: float, p: float):
         """
         Update time-varying power state
 
@@ -57,7 +57,7 @@ class BatteryDegradationModel:
         return dydx * dx
 
     @staticmethod
-    def update_power_B_state(y0: float, dx: float, k: float, p: float):
+    def _update_power_B_state(y0: float, dx: float, k: float, p: float):
         """
         Update time-varying power B state
 
@@ -82,7 +82,7 @@ class BatteryDegradationModel:
         return dydx * dx
 
     @staticmethod
-    def update_sigmoid_state(y0: float, dx: float, y_inf: float, k: float, p: float):
+    def _update_sigmoid_state(y0: float, dx: float, y_inf: float, k: float, p: float):
         """
         Update time-varying sigmoid state
 
@@ -113,7 +113,7 @@ class BatteryDegradationModel:
     # example, and are taken from M. Safari and C. Delacourt, Journal of the
     # Electrochemical Society, 158(5), A562 (2011).
     @staticmethod
-    def get_Ua(soc: np.ndarray):
+    def _get_Ua(soc: np.ndarray):
         """
         Calculate Ua from SOC via lithiation fraction.
 
@@ -248,7 +248,7 @@ class BatteryDegradationModel:
             # Find breakpoints for simulating degradation, either simulating degradation when the number of EFCs between
             # turning points is greater than 1, or every day if EFCs accumlate slower than that.
             EFCs = np.cumsum(np.abs(np.ediff1d(soc, to_begin=0))) / 2
-            simulation_breakpoints = self.find_breakpoints(
+            simulation_breakpoints = self._find_breakpoints(
                 t_secs,
                 EFCs,
                 idx_turning_point,
@@ -270,7 +270,7 @@ class BatteryDegradationModel:
                 prior_breakpoint = breakpoint
 
     @staticmethod
-    def find_breakpoints(
+    def _find_breakpoints(
         time_seconds: np.ndarray,
         EFCs: np.ndarray,
         idx_turning_point: np.ndarray,
@@ -341,7 +341,7 @@ class BatteryDegradationModel:
         if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
             raise ValueError("All input timeseries must be the same length")
 
-        stressors = self.extract_stressors(t_secs, soc, T_celsius)
+        stressors = self._extract_stressors(t_secs, soc, T_celsius)
         # Unpack and store some stressors for debugging or plotting
         delta_t_days = stressors["delta_t_days"]
         delta_efc = stressors["delta_efc"]
@@ -434,7 +434,7 @@ class BatteryDegradationModel:
         pass
 
     @staticmethod
-    def extract_stressors(
+    def _extract_stressors(
         t_secs: np.ndarray, soc: np.ndarray, T_celsius: np.ndarray
     ) -> dict:
         """Extract stressor values including time, temperature, depth-of-discharge,
@@ -471,7 +471,7 @@ class BatteryDegradationModel:
         # Uses the equation from Safari and Delacourt, https://doi.org/10.1149/1.3567007.
         # Anode stoichiometry is assumed to be the same for any chemistry/cell, and is calculated using the equation from Schimpe et al https://doi.org/10.1149/2.1181714jes
         # While this will not be precise, it still helps get a guess as to where the plateaus of the anode-reference potential are.
-        Ua = BatteryDegradationModel.get_Ua(soc)
+        Ua = BatteryDegradationModel._get_Ua(soc)
 
         cycles = count_cycles(soc)
         cycles = sum(i for _, i in cycles)

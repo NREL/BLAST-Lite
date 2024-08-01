@@ -78,11 +78,11 @@ class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap_2ndLife(self):
+    def cap_2ndLife(self):
         return 46
     
     @property
-    def _cap(self):
+    def cap(self):
         return 66
 
     # Define life model parameters
@@ -148,8 +148,8 @@ class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
+        dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
+        dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

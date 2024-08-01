@@ -83,7 +83,7 @@ class NMC_Gr_75Ah_A(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap(self):
+    def cap(self):
         return 75
 
     # Define life model parameters
@@ -157,8 +157,8 @@ class NMC_Gr_75Ah_A(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * self.update_power_state(states['qLoss_t'][-1], delta_t_days/1e3, r['kcal'], p['pcal'])
-        dq_EFC = self._degradation_scalar * self.update_power_state(states['qLoss_EFC'][-1], delta_efc/1e4, r['kcyc'], p['pcyc'])
+        dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days/1e3, r['kcal'], p['pcal'])
+        dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc/1e4, r['kcyc'], p['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

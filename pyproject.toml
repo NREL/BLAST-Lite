@@ -24,3 +24,6 @@ build-backend = "setuptools.build_meta"
 
 [project.urls]
 Homepage = "https://github.com/NREL/BLAST-Lite"
+
+[tool.spin]
+package = "blast"

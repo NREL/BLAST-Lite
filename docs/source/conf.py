@@ -22,7 +22,7 @@ copyright = '2024, Paul Gasper, Kandler Smith'
 author = 'Paul Gasper, Kandler Smith'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.0.2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -51,7 +51,6 @@ autoapi_type = 'python'
 autoapi_ignore = ['*/__pycache__/*']
 autoapi_dirs = ['../../blast']
 autoapi_keep_files = True
-autoapi_root = 'api'
 autoapi_member_order = 'groupwise'
 autodoc_typehints = 'none'
 autoapi_python_class_content = 'both'
@@ -61,6 +60,7 @@ autoapi_options = [
     'undoc-members',
     'show-module-summary',
     'imported-members',
+    'show-inheritance',
 ]
 
 
