@@ -9,7 +9,7 @@ Welcome to BLAST-Lite's documentation!
 
    pages/readme
    pages/user_guide
-   pages/api
+   API Reference <api/blast/index>
 
 Indices and tables
 ==================

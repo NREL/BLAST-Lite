@@ -34,6 +34,7 @@ release = '0.0.1'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.napoleon',
+              'autoapi.extension',
               'sphinx_copybutton',
               'myst_parser']
 
@@ -46,12 +47,33 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
+autoapi_type = 'python'
+autoapi_ignore = ['*/__pycache__/*']
+autoapi_dirs = ['../../blast']
+autoapi_keep_files = True
+autoapi_root = 'api'
+autoapi_member_order = 'groupwise'
+autodoc_typehints = 'none'
+autoapi_python_class_content = 'both'
+autoapi_options = [
+    'members',
+    'inherited-members',
+    'undoc-members',
+    'show-module-summary',
+    'imported-members',
+]
+
+
+html_sidebars = {
+    "**": []
+}
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'pydata_sphinx_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

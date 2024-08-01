@@ -17,7 +17,8 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         4. Data from a commercial EV in Honolulu, Hawaii.
 
     Args:
-        kind (str): One of 'synthetic', 'ev_smallbattery', 'ev_largebattery', 'ev_commercial'
+        kind (str): One of 'synthetic', 'ev_smallbattery', 'ev_largebattery',
+        'ev_commercial', 'ev_commercial_lowdod', 'ev_commercial_lowdod_lowsoc'
 
     Returns:
         dict:  Dictionary with keys {'Time_s', 'SOC', 'Temperature_C'}
@@ -28,6 +29,8 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         "ev_smallbattery",
         "ev_largebattery",
         "ev_commercial",
+        "ev_commercial_lowdod",
+        "ev_commercial_lowdod_lowsoc",
     }
 
     if kind == "synthetic":
@@ -111,6 +114,19 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         commercial_ev = pd.read_csv("examples/application profiles/commercial_ev.csv")
         commercial_ev = commercial_ev.iloc[np.linspace(0, 24 * 3600 * 7 - 1, 24 * 7)]
         input = assemble_one_year_input(commercial_ev, climate)
+
+    elif kind == "ev_commercial_lowdod":
+        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
+        commercial_ev_lowdod = pd.read_csv('blast/application profiles/commercial_ev_lowdod.csv')
+        commercial_ev_lowdod = commercial_ev_lowdod.iloc[np.linspace(0, 24*3600*7 - 1, 24*7)]
+        input = assemble_one_year_input(commercial_ev_lowdod, climate)
+
+    elif kind == "ev_commercial_lowdod_lowsoc":
+        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
+        commercial_ev_lowdod_lowsoc = pd.read_csv('blast/application profiles/commercial_ev_lowdod.csv')
+        commercial_ev_lowdod_lowsoc = commercial_ev_lowdod_lowsoc.iloc[np.linspace(0, 24*3600*7 - 1, 24*7)]
+        commercial_ev_lowdod_lowsoc['SOC'] += -0.4
+        input = assemble_one_year_input(commercial_ev_lowdod_lowsoc, climate)
 
     else:
         raise ValueError(
