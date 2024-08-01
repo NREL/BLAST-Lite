@@ -37,9 +37,6 @@ cell = models.Lfp_Gr_250AhPrismatic()
 cell.simulate_battery_life(data)
 ```
 
-Evaluate output by slicing 
-
-
 ### Caveats
 These battery models predict 'expected life', that is, battery life under nominal conditions. Many types of battery failure will not be predicted by these models:
 - Overcharge or overdischarge
