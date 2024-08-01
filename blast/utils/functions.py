@@ -25,18 +25,14 @@ def get_nsrdb_temperature_data(location: str = "Honolulu, Hawaii") -> pd.DataFra
         dist, pos = tree.query(lat_lon)
         return pos
 
-    # loc = Nominatim(user_agent="Geopy Library")
-    # # entering the location name
-    # getLoc = loc.geocode(location)
-    # # printing address
-    # print("Found location: ", getLoc.address)
-    # # printing latitude and longitude
-    # lat = getLoc.latitude
-    # lon = getLoc.longitude
-    # coords = (lat, lon)
-
-    lat = 21.3099
-    lon = 157.8581
+    loc = Nominatim(user_agent="Geopy Library")
+    # entering the location name
+    getLoc = loc.geocode(location)
+    # printing address
+    print("Found location: ", getLoc.address)
+    # printing latitude and longitude
+    lat = getLoc.latitude
+    lon = getLoc.longitude
     coords = (lat, lon)
 
     # Open NSRDB .h5 file

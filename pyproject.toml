@@ -15,6 +15,26 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+dependencies = [
+    "h5pyd",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "pytables",
+    "nrel-rex",
+    "geopy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "sphinx",
+    "myst-parser",
+    "sphinx-copybutton",
+    "pydata-sphinx-theme",
+    "ipykernel",
+]
+
 [tool.setuptools]
 py-modules = []
 
