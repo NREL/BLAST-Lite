@@ -10,30 +10,43 @@
 #   Mechanistic calendar aging model (considers impact of capacity check frequency): https://doi.org/10.1016/j.jpowsour.2023.233208
 
 import numpy as np
-from ..state_functions import update_sigmoid_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Aging test matrix varied temperature and state-of-charge for calendar aging, and
-# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
-# For calendar aging, in addition to temperature and SOC, capacity-check frequency was also varied. 
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
-# charge and discharge C-rates.
-
-# MODEL LIMITATIONS
-# I did not model the impact of capacity check frequency, only using the 6 week capacity check data.
-# See https://doi.org/10.1016/j.jpowsour.2023.233208 for a detailed consideration of the capacity check frequency impact on aging.
-# Only one cycling cell in the data shows 'knee-over' behavior, making empirical model identification of this behavior challenging.
-# I simply neglected the knee over; this knee occurs at ~80% capacity fade, so note that predictions of degradation at maximum
-# DOD and below 80% capacity should not be believed.
 
 class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
 
-    def __init__(self, degradation_scalar=1, label="NCA-GrSi Sony-Murata"):
+    """
+    Model predicting the degradation of Sony-Murata US18650VTC5A 3.5 Ah NCA-GrSi cylindrical cells.
+    Relatively high power cells, with 1.4 wt% Si in the graphite-si composite negative electrode.
+    (Maximum continuous charge rate of 2C and max continuous discharge rate of 10C, even at 5 degC)
+    Data is from Technical University of Munich, reported in studies led by Leo Wildfeuer and Alexander Karger.
+    Accelerated aging test data reported in https://doi.org/10.1016/j.jpowsour.2022.232498
+    The model here was identifed using AI-Batt at NREL. Note that the TUM authors have put more effort
+    into model identification on this data set, see the following papers for more detailed models identified on this data set:
+    Mechanistic cycle aging model (LLI, LAM_PE, LAM_(NE,Gr), LAM_(NE,Si)): https://doi.org/10.1016/j.jpowsour.2023.233947
+    Mechanistic calendar aging model (considers impact of capacity check frequency): https://doi.org/10.1016/j.jpowsour.2023.233208
+    
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Aging test matrix varied temperature and state-of-charge for calendar aging, and
+            varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
+            For calendar aging, in addition to temperature and SOC, capacity-check frequency was also varied. 
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
+            charge and discharge C-rates.
+
+        MODEL LIMITATIONS
+            I did not model the impact of capacity check frequency, only using the 6 week capacity check data.
+            See https://doi.org/10.1016/j.jpowsour.2023.233208 for a detailed consideration of the capacity check frequency impact on aging.
+            Only one cycling cell in the data shows 'knee-over' behavior, making empirical model identification of this behavior challenging.
+            I simply neglected the knee over; this knee occurs at ~80% capacity fade, so note that predictions of degradation at maximum
+            DOD and below 80% capacity should not be believed.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NCA-GrSi Sony-Murata"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -88,7 +101,7 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap(self):
+    def cap(self):
         return 2.5
 
     # Define life model parameters
@@ -136,7 +149,7 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
         if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
             raise ValueError('All input timeseries must be the same length')
         
-        stressors = self.extract_stressors(t_secs, soc, T_celsius)
+        stressors = self._extract_stressors(t_secs, soc, T_celsius)
         # Unpack and store some stressors for debugging or plotting
         delta_t_days = stressors["delta_t_days"]
         delta_efc = stressors["delta_efc"]
@@ -246,8 +259,8 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
         states = self.states
 
         # Capacity
-        dq_t = self._degradation_scalar * update_sigmoid_state(states['qLoss_t'][-1], delta_t_days/5e3, r['kcal'], p['q2'], r['pcal'])
-        dq_EFC = self._degradation_scalar * update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc/1e5, r['kcyc'], p['q4'], r['pcyc'])
+        dq_t = self._degradation_scalar * self._update_sigmoid_state(states['qLoss_t'][-1], delta_t_days/5e3, r['kcal'], p['q2'], r['pcal'])
+        dq_EFC = self._degradation_scalar * self._update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc/1e5, r['kcyc'], p['q4'], r['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])
@@ -271,9 +284,9 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
             self.outputs[k] = np.append(self.outputs[k], v)
     
     @staticmethod
-    def extract_stressors(t_secs, soc, T_celsius):
+    def _extract_stressors(t_secs, soc, T_celsius):
         # extract the usual stressors
-        stressors = BatteryDegradationModel.extract_stressors(t_secs, soc, T_celsius)
+        stressors = BatteryDegradationModel._extract_stressors(t_secs, soc, T_celsius)
         # model specific stressors: soc_low, soc_high, Cchg, Cdis
         soc_low = np.min(soc)
         soc_high = np.max(soc)

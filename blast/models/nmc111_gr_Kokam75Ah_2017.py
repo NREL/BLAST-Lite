@@ -1,47 +1,49 @@
 # Paul Gasper, NREL
 import numpy as np
-from ..state_functions import update_power_state, update_sigmoid_state
-from ..models.degradation_model import BatteryDegradationModel
-
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Aging test matrix varied primarly temperature, with small DOD variation.
-# Calendar and cycle aging were performed between 0 and 55 Celsius. C-rates always at 1C,
-# except for charging at 0 Celsius, which was conducted at C/3. Depth-of-discharge was 80%
-# for nearly all tests (3.4 V - 4.1 V), with one 100% DOD test (3 V - 4.2 V).
-# Reported relative capacity was measured at C/5 rate at the aging temperatures. Reported
-# relative DC resistance was measured by HPPC using a 10s, 1C DC pulse, averaged between 
-# charge and discharge, calculated using a simple ohmic fit of the voltage response.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of temperature and depth-of-discharge. Sensitivity to cycling degradation rate
-# at low temperature is inferred from physical insight due to limited data.
-
-# MODEL LIMITATIONS
-# There is NO C-RATE DEPENDENCE for degradation in this model. THIS IS NOT PHYSICALLY REALISTIC
-# AND IS BASED ON LIMITED DATA.
+from blast.models.degradation_model import BatteryDegradationModel
 
 
 class Nmc111_Gr_Kokam75Ah_Battery(BatteryDegradationModel):
-    # Model predicting the degradation of a Kokam 75 Ah NMC-Gr pouch cell.
-    # https://ieeexplore.ieee.org/iel7/7951530/7962914/07963578.pdf
-    # It is uncertain if the exact NMC composition is 1-1-1, but it this is definitely not a high nickel (>80%) cell.
-    # Degradation rate is a function of the aging stressors, i.e., ambient temperature and use.
-    # The state of the battery is updated throughout the lifetime of the cell.
-    # Performance metrics are capacity and DC resistance. These metrics change as a function of the
-    # cell's current degradation state, as well as the ambient temperature. The model predicts time and 
-    # cycling dependent degradation, using Loss of Lithium Inventory (LLI) and Loss of Active
-    # Material (LAM) degradation modes that interact competitively (cell performance is limited by
-    # one or the other.)
-    # Parameters to modify to change fade rates:
-    #   Calendar capacity loss rate: q1_0
-    #   Cycling capacity loss rate (LLI): q3_0
-    #   Cycling capacity loss rate (LAM): q5_0, will also effect resistance growth onset due to LAM.
-    #   Calendar resistance growth rate (LLI), relative to capacity loss rate: r1
-    #   Cycling resistance growth rate (LLI), relative to capacity loss rate: r3
+    """
+    Model predicting the degradation of a Kokam 75 Ah NMC-Gr pouch cell.
+    https://ieeexplore.ieee.org/iel7/7951530/7962914/07963578.pdf
+    It is uncertain if the exact NMC composition is 1-1-1, but it this is definitely not a high nickel (>80%) cell.
+    Degradation rate is a function of the aging stressors, i.e., ambient temperature and use.
+    The state of the battery is updated throughout the lifetime of the cell.
+    Performance metrics are capacity and DC resistance. These metrics change as a function of the
+    cell's current degradation state, as well as the ambient temperature. The model predicts time and 
+    cycling dependent degradation, using Loss of Lithium Inventory (LLI) and Loss of Active
+    Material (LAM) degradation modes that interact competitively (cell performance is limited by
+    one or the other.)
+    Parameters to modify to change fade rates:
+    - Calendar capacity loss rate: q1_0
+    - Cycling capacity loss rate (LLI): q3_0
+    - Cycling capacity loss rate (LAM): q5_0, will also effect resistance growth onset due to LAM.
+    - Calendar resistance growth rate (LLI), relative to capacity loss rate: r1
+    - Cycling resistance growth rate (LLI), relative to capacity loss rate: r3
 
-    def __init__(self, degradation_scalar=1, label="NMC111-Gr Kokam"):
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Aging test matrix varied primarly temperature, with small DOD variation.
+            Calendar and cycle aging were performed between 0 and 55 Celsius. C-rates always at 1C,
+            except for charging at 0 Celsius, which was conducted at C/3. Depth-of-discharge was 80%
+            for nearly all tests (3.4 V - 4.1 V), with one 100% DOD test (3 V - 4.2 V).
+            Reported relative capacity was measured at C/5 rate at the aging temperatures. Reported
+            relative DC resistance was measured by HPPC using a 10s, 1C DC pulse, averaged between 
+            charge and discharge, calculated using a simple ohmic fit of the voltage response.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of temperature and depth-of-discharge. Sensitivity to cycling degradation rate
+            at low temperature is inferred from physical insight due to limited data.
+
+        MODEL LIMITATIONS
+            There is NO C-RATE DEPENDENCE for degradation in this model. THIS IS NOT PHYSICALLY REALISTIC
+            AND IS BASED ON LIMITED DATA.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "NMC111-Gr Kokam"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_LLI_t': np.array([0]),   # relative Li inventory change, time dependent (SEI)
@@ -101,7 +103,7 @@ class Nmc111_Gr_Kokam75Ah_Battery(BatteryDegradationModel):
     
     # Nominal capacity
     @property
-    def _cap(self):
+    def cap(self):
         return 75
 
     # Define life model parameters
@@ -183,13 +185,13 @@ class Nmc111_Gr_Kokam75Ah_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_LLI_t = self._degradation_scalar * update_power_state(states['qLoss_LLI_t'][-1], delta_t_days, r['q1'], p['q2'])
-        dq_LLI_EFC = self._degradation_scalar * update_power_state(states['qLoss_LLI_EFC'][-1], delta_efc, r['q3'], p['q4'])
-        dq_LAM = self._degradation_scalar * update_sigmoid_state(states['qLoss_LAM'][-1], delta_efc, 1, 1/r['q5'], p['p_LAM'])
+        dq_LLI_t = self._degradation_scalar * self._update_power_state(states['qLoss_LLI_t'][-1], delta_t_days, r['q1'], p['q2'])
+        dq_LLI_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_LLI_EFC'][-1], delta_efc, r['q3'], p['q4'])
+        dq_LAM = self._degradation_scalar * self._update_sigmoid_state(states['qLoss_LAM'][-1], delta_efc, 1, 1/r['q5'], p['p_LAM'])
         
         # Resistance
-        dr_LLI_t = self._degradation_scalar * update_power_state(states['rGain_LLI_t'][-1], delta_t_days, p['r1']*r['q1'], p['r2'])
-        dr_LLI_EFC = self._degradation_scalar * update_power_state(states['rGain_LLI_EFC'][-1], delta_efc, p['r3']*r['q3'], p['r4'])
+        dr_LLI_t = self._degradation_scalar * self._update_power_state(states['rGain_LLI_t'][-1], delta_t_days, p['r1']*r['q1'], p['r2'])
+        dr_LLI_EFC = self._degradation_scalar * self._update_power_state(states['rGain_LLI_EFC'][-1], delta_efc, p['r3']*r['q3'], p['r4'])
 
         # Accumulate and store states
         dx = np.array([dq_LLI_t, dq_LLI_EFC, dq_LAM, dr_LLI_t, dr_LLI_EFC])

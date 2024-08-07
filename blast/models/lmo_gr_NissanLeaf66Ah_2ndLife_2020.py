@@ -6,24 +6,32 @@
 # of 70%. So the model reports q and qNew, where qNew is relative to initial
 
 import numpy as np
-from ..state_functions import update_power_state
-from ..models.degradation_model import BatteryDegradationModel
+from blast.models.degradation_model import BatteryDegradationModel
 
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Calendar aging widely varied SOC and temperature.
-# Cycle aging is only at a single condition (25 Celsius, 100% DOD, 1C-1C).
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate is only a function equivalent full cycles.
-
-# MODEL LIMITATIONS
-# Cycling degradation IS ONLY A FUNCTION OF CHARGE THROUGHPUT due to limited aging data.
-# Cycling degradation predictions ARE ONLY VALID NEAR 25 CELSIUS, 100% DOD, 1 C CHARGE/DISCHARGE RATE.
 
 class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
+    """
+    Model fit to SECOND LIFE data on Nissan Leaf half-modules (2p cells) by Braco et al.
+    https://doi.org/10.1109/EEEIC/ICPSEUROPE54979.2022.9854784 (calendar aging data)
+    https://doi.org/10.1016/j.est.2020.101695 (cycle aging data)
+    Note that these cells are already hugely degraded, starting out at an average relative capacity
+    of 70%. So the model reports q and qNew, where qNew is relative to initial.
 
-    def __init__(self, degradation_scalar=1, label="LMO-Gr Nissan Leaf"):
+    .. note ::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Calendar aging widely varied SOC and temperature.
+            Cycle aging is only at a single condition (25 Celsius, 100% DOD, 1C-1C).
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate is only a function equivalent full cycles.
+
+        MODEL LIMITATIONS
+            Cycling degradation IS ONLY A FUNCTION OF CHARGE THROUGHPUT due to limited aging data.
+            Cycling degradation predictions ARE ONLY VALID NEAR 25 CELSIUS, 100% DOD, 1 C CHARGE/DISCHARGE RATE.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "LMO-Gr Nissan Leaf"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -70,11 +78,11 @@ class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap_2ndLife(self):
+    def cap_2ndLife(self):
         return 46
     
     @property
-    def _cap(self):
+    def cap(self):
         return 66
 
     # Define life model parameters
@@ -140,8 +148,8 @@ class Lmo_Gr_NissanLeaf66Ah_2ndLife_Battery(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
+        dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days, r['k_cal'], p['qcal_p'])
+        dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc, p['qcyc_A'], p['qcyc_p'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])

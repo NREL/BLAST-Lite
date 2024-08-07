@@ -1,11 +1,61 @@
-![BLAST-Lite](icon-blast.jpg)
+![BLAST-Lite](assets/icon-blast.jpg)
 
-### BLAST-Lite
+# BLAST-Lite
 Battery Lifetime Analysis and Simulation Toolsuite (BLAST) provides a library of battery lifetime and degradation models for various commercial lithium-ion batteries from recent years. Degradation models are indentified from publically available lab-based aging data using NREL's battery life model identification toolkit. The battery life models predicted the expected lifetime of batteries used in mobile or stationary applications as functions of their temperature and use (state-of-charge, depth-of-discharge, and charge/discharge rates). Model implementation is in both Python and MATLAB programming languages. The MATLAB code also provides example applications (stationary storage and EV), climate data, and simple thermal management options. For more information on battery health diagnostics, prediction, and optimization, see [NREL's Battery Lifespan](https://www.nrel.gov/transportation/battery-lifespan.html) webpage.
 
-![Example battery life predictions](example_battery_life.png)
+![Example battery life predictions](assets/example_battery_life.png)
 
-## Caveats
+### Installation
+
+Set up and activate a Python environment (anything between Python 3.8 and 3.12):
+
+```
+conda create -n blast-lite python=3.12
+conda activate blast-lite
+```
+
+Install BLAST-Lite via PyPI.
+In the environment created and activate above, run `pip install blast-lite`.
+
+
+#### Note: Fetching temperature data from NSRDB
+The `blast.utils.get_nsrdb_temperature_data()` function uses an API key to access the NREL NSRDB for climate data for any requested location. If making many requests, please [get your own API key](https://developer.nrel.gov/signup) and replace the existing API key with yours in the 'examples\.hscfg' file. This configuration file is assumed by default to be in your 'home' folder, that is, the same folder as the code that is being run.
+
+If using a Windows machine, you may need to additionally run the following:
+
+`$ python -m pip install python-certifi-win32`.
+
+```python
+import certifi
+import ssl
+import geopy
+
+ctx = ssl.create_default_context(cafile=certifi.where())
+geopy.geocoders.options.default_ssl_context = ctx
+```
+
+
+### Quickstart
+Once the package is installed, you can generate an example usage dataset by running:
+
+```python
+from blast import utils
+data = utils.generate_example_data()
+```
+
+To see a list of available battery models, run:
+```python
+from blast import models
+models.available_models()
+```
+
+Select a model, instantiate a cell, and run the simulation:
+```python
+cell = models.Lfp_Gr_250AhPrismatic()
+cell.simulate_battery_life(data)
+```
+
+### Caveats
 These battery models predict 'expected life', that is, battery life under nominal conditions. Many types of battery failure will not be predicted by these models:
 - Overcharge or overdischarge
 - Impact of physical damage, vibration, or humidity
@@ -17,7 +67,7 @@ Battery 'warranty life' is generally much more conservative than 'expected life'
 These models are estimating cell level degradation, there will be additional performance penalties and caveats for estimating lifetime of battery packs. 
 A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell lifetime, but please support model simulations with data if you have it.
 
-## Citations:
+### Citations
  - Sony Murata LFP-Gr battery aging data and model
      - [Calendar aging data source](https://doi.org/10.1016/j.est.2018.01.019)
      - [Cycle aging data source](https://doi.org/10.1016/j.jpowsour.2019.227666)
@@ -42,7 +92,7 @@ A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell li
  - Stationary storage battery use profiles are [provided open-source](https://dataserv.ub.tum.de/index.php/s/m1510254) by [Kucevic et al](https://www.sciencedirect.com/science/article/pii/S2352152X19309016)
  - Electric vehicle battery use profiles were generated using NREL's [FASTSim tool](https://www.nrel.gov/transportation/fastsim.html).
 
-## Authors
+### Authors
 Paul Gasper, Kandler Smith
 
 NREL SWR-22-69

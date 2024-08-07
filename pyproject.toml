@@ -1,0 +1,49 @@
+[project]
+name = "BLAST-Lite"
+version = "1.0.0"
+authors = [
+  { name="Paul Gasper", email="Paul.Gasper@nrel.gov" },
+  { name="Kandler Smith", email="Kandler.Smith@nrel.gov" },
+]
+description = "Tool to model lifetime and degradation for commercial lithium-ion batteries."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8,<=3.12.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "h5pyd",
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "nrel-rex",
+    "geopy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "sphinx",
+    "myst-parser",
+    "sphinx-copybutton",
+    "pydata-sphinx-theme",
+    "ipykernel",
+]
+
+[tool.setuptools.packages.find]
+where = ["."] # list of folders that contain the packages (["."] by default)
+include = [
+    "blast*",
+] # package names should match these glob patterns (["*"] by default)
+namespaces = false # to disable scanning PEP 420 namespaces (true by default)
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/NREL/BLAST-Lite"

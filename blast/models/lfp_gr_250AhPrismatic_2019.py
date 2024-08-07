@@ -4,38 +4,41 @@
 # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
 
 import numpy as np
-import scipy.stats as stats
-from ..state_functions import update_power_state
 from .degradation_model import BatteryDegradationModel
-
-# EXPERIMENTAL AGING DATA SUMMARY:
-# Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
-# Aging test matrix varied temperature and state-of-charge for calendar aging, and
-# varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
-# Charging rate was limited to a maximum of 0.16 C at 10 Celsius, and 0.65 C at all
-# higher temperatures, so the model is only fit on low rate charge data.
-
-# MODEL SENSITIVITY
-# The model predicts degradation rate versus time as a function of temperature and average
-# state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
-# a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
-# charge and discharge C-rates.
-# Test data showed that the cycling degradation rate was nearly identical for all cells,
-# despite varying temperature, average SOC, and dis/charge rates. This means that the cycle aging
-# model learned the inverse temperature depedence of the calendar aging model to 'balance' the 
-# the degradation rate at the tested cycling temperatures (10 Celsius to 45 Celsius). So, the model
-# will likely make very poor extrapolations outside of this tested temperature range for cycling fade.
-
-# MODEL LIMITATIONS
-# Charging and discharging rates were very conservative, following cycling protocols as suggested by the
-# cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
 
 
 class Lfp_Gr_250AhPrismatic(BatteryDegradationModel):
-    # Model predicting the degradation of large-format commercial LFP-Gr cells (>250 Ah)
-    # Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+    """
+    Model predicting the degradation of large-format prismatic commercial LFP-Gr
+    cells from a large manufacturer, with >250 Ah capacity and an
+    energy-to-power ratio of 6 h**-1 (high energy density cell, low power).
+    Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
 
-    def __init__(self, degradation_scalar=1, label="LFP-Gr 250Ah"):
+    .. note::
+        EXPERIMENTAL AGING DATA SUMMARY:
+            Experimental test data is reported in https://doi.org/10.1016/j.est.2023.109042.
+            Aging test matrix varied temperature and state-of-charge for calendar aging, and
+            varied depth-of-discharge, average state-of-charge, and C-rates for cycle aging.
+            Charging rate was limited to a maximum of 0.16 C at 10 Celsius, and 0.65 C at all
+            higher temperatures, so the model is only fit on low rate charge data.
+
+        MODEL SENSITIVITY
+            The model predicts degradation rate versus time as a function of temperature and average
+            state-of-charge and degradation rate versus equivalent full cycles (charge-throughput) as 
+            a function of average state-of-charge during a cycle, depth-of-discharge, and average of the
+            charge and discharge C-rates.
+            Test data showed that the cycling degradation rate was nearly identical for all cells,
+            despite varying temperature, average SOC, and dis/charge rates. This means that the cycle aging
+            model learned the inverse temperature depedence of the calendar aging model to 'balance' the 
+            the degradation rate at the tested cycling temperatures (10 Celsius to 45 Celsius). So, the model
+            will likely make very poor extrapolations outside of this tested temperature range for cycling fade.
+
+        MODEL LIMITATIONS
+            Charging and discharging rates were very conservative, following cycling protocols as suggested by the
+            cell manufacturer. Degradation at higher charging or discharging rates will not be simulated accurately.
+    """
+
+    def __init__(self, degradation_scalar: float = 1, label: str = "LFP-Gr 250Ah"):
         # States: Internal states of the battery model
         self.states = {
             'qLoss_t': np.array([0]),
@@ -85,7 +88,7 @@ class Lfp_Gr_250AhPrismatic(BatteryDegradationModel):
 
     # Nominal capacity
     @property
-    def _cap(self):
+    def cap(self):
         return 250
 
     # Define life model parameters
@@ -160,8 +163,8 @@ class Lfp_Gr_250AhPrismatic(BatteryDegradationModel):
         # Calculate incremental state changes
         states = self.states
         # Capacity
-        dq_t = self._degradation_scalar * update_power_state(states['qLoss_t'][-1], delta_t_days, r['kcal'], p['pcal'])
-        dq_EFC = self._degradation_scalar * update_power_state(states['qLoss_EFC'][-1], delta_efc, r['kcyc'], p['pcyc'])
+        dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days, r['kcal'], p['pcal'])
+        dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc, r['kcyc'], p['pcyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])
