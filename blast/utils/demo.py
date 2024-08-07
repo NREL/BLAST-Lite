@@ -90,7 +90,7 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         input = {"Time_s": t_secs, "SOC": soc, "Temperature_C": TdegC}
 
     elif kind == "ev_smallbattery":
-        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
+        climate = pd.read_csv("examples/climates/nsrdb_honolulu.csv")
         ev_smallbattery = pd.read_csv(
             "examples/application profiles/personal_ev_smallbatt.csv"
         )
@@ -100,7 +100,7 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         input = assemble_one_year_input(ev_smallbattery, climate)
 
     elif kind == "ev_largebattery":
-        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
+        climate = pd.read_csv("examples/climates/nsrdb_honolulu.csv")
         ev_largebattery = pd.read_csv(
             "examples/application profiles/personal_ev_largebatt.csv"
         )
@@ -110,20 +110,20 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         input = assemble_one_year_input(ev_largebattery, climate)
 
     elif kind == "ev_commercial":
-        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
+        climate = pd.read_csv("examples/climates/nsrdb_honolulu.csv")
         commercial_ev = pd.read_csv("examples/application profiles/commercial_ev.csv")
         commercial_ev = commercial_ev.iloc[np.linspace(0, 24 * 3600 * 7 - 1, 24 * 7)]
         input = assemble_one_year_input(commercial_ev, climate)
 
     elif kind == "ev_commercial_lowdod":
-        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
-        commercial_ev_lowdod = pd.read_csv('blast/application profiles/commercial_ev_lowdod.csv')
+        climate = pd.read_csv("examples/climates/nsrdb_honolulu.csv")
+        commercial_ev_lowdod = pd.read_csv('examples/application profiles/commercial_ev_lowdod.csv')
         commercial_ev_lowdod = commercial_ev_lowdod.iloc[np.linspace(0, 24*3600*7 - 1, 24*7)]
         input = assemble_one_year_input(commercial_ev_lowdod, climate)
 
     elif kind == "ev_commercial_lowdod_lowsoc":
-        climate = get_nsrdb_temperature_data("Honolulu, Hawaii")
-        commercial_ev_lowdod_lowsoc = pd.read_csv('blast/application profiles/commercial_ev_lowdod.csv')
+        climate = pd.read_csv("examples/climates/nsrdb_honolulu.csv")
+        commercial_ev_lowdod_lowsoc = pd.read_csv('examples/application profiles/commercial_ev_lowdod.csv')
         commercial_ev_lowdod_lowsoc = commercial_ev_lowdod_lowsoc.iloc[np.linspace(0, 24*3600*7 - 1, 24*7)]
         commercial_ev_lowdod_lowsoc['SOC'] += -0.4
         input = assemble_one_year_input(commercial_ev_lowdod_lowsoc, climate)

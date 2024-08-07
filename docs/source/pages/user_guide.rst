@@ -14,6 +14,7 @@ for the aging test details and results used to parameterize this model.
 .. code:: python
     
     from blast import utils, models
+    import matplotlib.pyplot as plt
 
 
 Generating input data
@@ -87,8 +88,6 @@ Visualize the sample profiles:
 
 .. code:: python
 
-    import matplotlib.pyplot as plt
-
     # Synthetic data
     fig, ax1 = plt.subplots()
     ax1.plot(input_synthetic['Time_s'][:25] / 3600, input_synthetic['SOC'][:25], '-k')
@@ -106,7 +105,7 @@ Visualize the sample profiles:
 
 .. code:: python
 
-    plt.plot(input_synthetic['Time_s'][:25] / 3600 /(24*365), input_synthetic['Temperature_C'])
+    plt.plot(input_synthetic['Time_s'] / 3600 /(24*365), input_synthetic['Temperature_C'])
     plt.xlabel('Time (years)')
     plt.ylabel('Temperature (Celsius)')
     plt.show()
@@ -117,12 +116,13 @@ Visualize the sample profiles:
 .. code:: python
 
     # Sample EV SOC profiles
-    plt.plot(input_ev_largebattery['Time_s'] / (24*3600), input_ev_largebattery['SOC'], label='Large battery EV')
-    plt.plot(input_ev_smallbattery['Time_s'] / (24*3600), input_ev_smallbattery['SOC'], label='Small battery EV')
-    plt.plot(input_ev_commercial['Time_s'] / (24*3600), input_ev_commercial['SOC'], label='Commercial EV')
+    plt.plot(input_ev_largebattery['Time_s'][:7*24] / (24*3600), input_ev_largebattery['SOC'][:7*24], label='Large battery EV')
+    plt.plot(input_ev_smallbattery['Time_s'][:7*24] / (24*3600), input_ev_smallbattery['SOC'][:7*24], label='Small battery EV')
+    plt.plot(input_ev_commercial['Time_s'][:7*24] / (24*3600), input_ev_commercial['SOC'][:7*24], label='Commercial EV')
     plt.xlabel('Time (days)')
     plt.ylabel('State of charge')
     plt.legend()
+    plt.show()
 
 .. image:: assets/ev_profiles.PNG
     :width: 600
@@ -130,12 +130,13 @@ Visualize the sample profiles:
 .. code:: python
 
     # Sample commercial EV SOC profiles
-    plt.plot(input_ev_commercial['Time_s'] / (24*3600), input_ev_commercial['SOC'], label='Commercial EV')
-    plt.plot(input_ev_commercial_lowdod['Time_s'] / (24*3600), input_ev_commercial_lowdod['SOC'], label='Commercial EV (Low DOD)')
-    plt.plot(input_ev_commercial_lowdod_lowsoc['Time_s'] / (24*3600), input_ev_commercial_lowdod_lowsoc['SOC'], label='Commercial EV (Low DOD, Low SOC)')
+    plt.plot(input_ev_commercial['Time_s'][:7*24] / (24*3600), input_ev_commercial['SOC'][:7*24], label='Commercial EV')
+    plt.plot(input_ev_commercial_lowdod['Time_s'][:7*24] / (24*3600), input_ev_commercial_lowdod['SOC'][:7*24], label='Commercial EV (Low DOD)')
+    plt.plot(input_ev_commercial_lowdod_lowsoc['Time_s'][:7*24] / (24*3600), input_ev_commercial_lowdod_lowsoc['SOC'][:7*24], label='Commercial EV (Low DOD, Low SOC)')
     plt.xlabel('Time (days)')
     plt.ylabel('State of charge')
     plt.legend()
+    plt.show()
 
 .. image:: assets/ev_commercial_profiles.PNG
     :width: 600
@@ -335,6 +336,7 @@ We can plot the separate contributions to capacity or resistance fade, as well.
     plt.ylabel('Relative discharge capacity')
     plt.legend([r'q$_{LLI}$', r'q$_{LAM}$', 'q'])
     plt.ylim((0.7, 1.02))
+    plt.show()
 
 .. image:: assets/synthetic_output_q_contributions.PNG
     :width: 600
@@ -450,6 +452,8 @@ We can also compare results of simulations with the sample EV profile inputs.
 
 .. code:: python
 
+    from blast.models import Nmc111_Gr_Kokam75Ah_Battery, Lfp_Gr_SonyMurata3Ah_Battery, Nca_Gr_Panasonic3Ah_Battery, NCA_GrSi_SonyMurata2p5Ah_Battery
+
     batteries = {
         'NMC111-Gr': [Nmc111_Gr_Kokam75Ah_Battery(), Nmc111_Gr_Kokam75Ah_Battery(), Nmc111_Gr_Kokam75Ah_Battery()],
         'LFP-Gr': [Lfp_Gr_SonyMurata3Ah_Battery(), Lfp_Gr_SonyMurata3Ah_Battery(), Lfp_Gr_SonyMurata3Ah_Battery()],
@@ -457,8 +461,8 @@ We can also compare results of simulations with the sample EV profile inputs.
         'NCA-GrSi': [NCA_GrSi_SonyMurata2p5Ah_Battery(), NCA_GrSi_SonyMurata2p5Ah_Battery(), NCA_GrSi_SonyMurata2p5Ah_Battery()]
     }
     simulations = {
-        'Personal EV (small)': input_ev_smallbatt,
-        'Personal EV (large)': input_ev_largebatt,
+        'Personal EV (small)': input_ev_smallbattery,
+        'Personal EV (large)': input_ev_largebattery,
         'Commercial EV': input_ev_commercial,
     }
 
@@ -470,21 +474,21 @@ We can also compare results of simulations with the sample EV profile inputs.
         for sim_type, sim_input in simulations.items():
             batt = battery[idx_sim]
             batt.simulate_battery_life(sim_input, years_simulation)
-
             ax[idx_ax].plot(batt.stressors['t_days']/365, batt.outputs['q'], label=sim_type)
             idx_sim += 1
-            
+
         ax[idx_ax].set_xlabel('Time (years)')
         ax[idx_ax].set_ylabel('Relative discharge capacity')
         ax[idx_ax].set_ylim((0.8, 1.01))
         ax[idx_ax].set_xlim((0, 20))
         ax[idx_ax].set_title(batt_type)
+
         if idx_ax == 1:
             ax[idx_ax].legend(loc='upper right')
         idx_ax += 1
-
+    
     plt.tight_layout()
-
+    plt.show()
 
 .. image:: assets/ev_multiple_models.PNG
     :width: 600
@@ -530,9 +534,8 @@ And finally, we can compare results of simulations with the sample commercial EV
         for sim_type, sim_input in simulations.items():
             batt = battery[idx_sim]
             batt.simulate_battery_life(sim_input, years_simulation)
-
             ax[idx_ax].plot(batt.stressors['t_days']/365, batt.outputs['q'], label=sim_type)
-            idx_sim += 1
+            idx_sim += 1   
             
         ax[idx_ax].set_xlabel('Time (years)')
         ax[idx_ax].set_ylabel('Relative discharge capacity')
@@ -544,6 +547,7 @@ And finally, we can compare results of simulations with the sample commercial EV
         idx_ax += 1
 
     plt.tight_layout()
+    plt.show()
 
 .. image:: assets/ev_commercial_multiple_models.PNG
     :width: 600

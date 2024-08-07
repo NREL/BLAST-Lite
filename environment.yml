@@ -10,8 +10,6 @@ dependencies:
   - myst-parser
   - scipy
   - seaborn
-  - sphinx-copybutton
-  - pydata-sphinx-theme
   - pytables
   - ipykernel
   - nrel-rex
