@@ -17,6 +17,8 @@ conda activate blast-lite
 Install BLAST-Lite via PyPI.
 In the environment created and activate above, run `pip install blast`.
 
+The `get_nsrdb_temperature_data` function uses an API key to access the NREL NSRDB for climate data for any requested location. If making many requests, please [get your own API key](https://developer.nrel.gov/signup) and replace the existing API key with yours in the 'examples\.hscfg' file. This configuration file is assumed by default to be in your 'home' folder, that is, the same folder as the code that is being run.
+
 ### Quickstart
 Once the package is installed, you can generate an example usage dataset by running:
 
