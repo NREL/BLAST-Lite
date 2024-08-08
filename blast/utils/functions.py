@@ -9,13 +9,13 @@ from numpy import interp
 import importlib
 from blast.models._available_models import available_models
 
-def simulate_all_models(**kwargs):
+def simulate_all_models(*args, **kwargs):
     models = available_models()
     cells = []
     for model in models:
         This_Battery_Model = getattr(importlib.import_module("blast.models"), model)
         cell = This_Battery_Model()
-        cell.simulate_battery_life(**kwargs)
+        cell.simulate_battery_life(*args, **kwargs)
         cells.append(cell)
     
     return cells
