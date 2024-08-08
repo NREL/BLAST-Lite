@@ -2,21 +2,8 @@
 
 import numpy as np
 import pandas as pd
-import importlib
 
 from blast.utils.functions import assemble_one_year_input
-from blast.models._available_models import available_models
-
-def simulate_all_models(**kwargs):
-    models = available_models()
-    cells = []
-    for model in models:
-        This_Battery_Model = getattr(importlib.import_module("blast.models"), model)
-        cell = This_Battery_Model()
-        cell.simulate_battery_life(**kwargs)
-        cells.append(cell)
-    
-    return cells
 
 def generate_sample_data(kind: str = "synthetic") -> dict:
     """

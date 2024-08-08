@@ -6,7 +6,19 @@ from scipy.spatial import cKDTree
 from geopy.geocoders import Nominatim
 import numpy as np
 from numpy import interp
+import importlib
+from blast.models._available_models import available_models
 
+def simulate_all_models(**kwargs):
+    models = available_models()
+    cells = []
+    for model in models:
+        This_Battery_Model = getattr(importlib.import_module("blast.models"), model)
+        cell = This_Battery_Model()
+        cell.simulate_battery_life(**kwargs)
+        cells.append(cell)
+    
+    return cells
 
 def get_nsrdb_temperature_data(location: str = "Honolulu, Hawaii") -> pd.DataFrame:
     """
