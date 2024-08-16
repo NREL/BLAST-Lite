@@ -93,6 +93,6 @@ A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell li
  - Electric vehicle battery use profiles were generated using NREL's [FASTSim tool](https://www.nrel.gov/transportation/fastsim.html).
 
 ### Authors
-Paul Gasper, Kandler Smith
+Paul Gasper, Nina Prakash, Kandler Smith
 
 NREL SWR-22-69
