@@ -195,7 +195,7 @@ class BatteryDegradationModel:
             years_simulated = self.stressors["t_days"][-1] / 365
             while years_simulated < simulation_years:
                 self.update_battery_state_repeating()
-                years_simulated += self.stressors["t_days"][-1] / 365
+                years_simulated = self.stressors["t_days"][-1] / 365
             return self
         else:
             # Check if we need to tile the inputs, do it if we do

@@ -1,8 +1,9 @@
 [project]
 name = "BLAST-Lite"
-version = "1.0.2"
+version = "1.0.3"
 authors = [
   { name="Paul Gasper", email="Paul.Gasper@nrel.gov" },
+  { name="Nina Prakash", email="Nina.Prakash@nrel.gov" },
   { name="Kandler Smith", email="Kandler.Smith@nrel.gov" },
 ]
 description = "Tool to model lifetime and degradation for commercial lithium-ion batteries."
