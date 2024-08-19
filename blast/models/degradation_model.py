@@ -172,14 +172,25 @@ class BatteryDegradationModel:
             raise ValueError(
                 "All numpy arrays in input_timeseries must have the same length."
             )
+        # Unpack the inputs, calculate equivalent full cycles (EFCs)
+        if isinstance(input_timeseries, dict):
+            t_secs = input_timeseries["Time_s"]
+            soc = input_timeseries["SOC"]
+            temperature = input_timeseries["Temperature_C"]
+        elif isinstance(input_timeseries, pd.DataFrame):
+            t_secs = input_timeseries["Time_s"].values
+            soc = input_timeseries["SOC"].values
+            temperature = input_timeseries["Temperature_C"].values
+        else:
+            raise TypeError("'input_timeseries' was not a dict or a Dataframe.")
 
         if is_constant_input:
             # Run life sim repeating until simulation is longer than simulation_years
             # Only calculate stressors / degradation rates on the first timestep to dramatically accelerate the simulation
             self.update_battery_state(
-                input_timeseries["Time_s"],
-                input_timeseries["SOC"],
-                input_timeseries["Temperature_C"],
+                t_secs,
+                soc,
+                temperature,
             )
             years_simulated = self.stressors["t_days"][-1] / 365
             while years_simulated < simulation_years:
@@ -187,18 +198,6 @@ class BatteryDegradationModel:
                 years_simulated += self.stressors["t_days"][-1] / 365
             return self
         else:
-            # Unpack the inputs, calculate equivalent full cycles (EFCs)
-            if isinstance(input_timeseries, dict):
-                t_secs = input_timeseries["Time_s"]
-                soc = input_timeseries["SOC"]
-                temperature = input_timeseries["Temperature_C"]
-            elif isinstance(input_timeseries, pd.DataFrame):
-                t_secs = input_timeseries["Time_s"].values
-                soc = input_timeseries["SOC"].values
-                temperature = input_timeseries["Temperature_C"].values
-            else:
-                raise TypeError("'input_timeseries' was not a dict or a Dataframe.")
-
             # Check if we need to tile the inputs, do it if we do
             if (
                 simulation_years is not None
