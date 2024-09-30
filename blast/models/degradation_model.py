@@ -364,8 +364,22 @@ class BatteryDegradationModel:
                 Crate,
             ]
         )
-        for k, v in zip(self.stressors.keys(), stressors_norm):
-            self.stressors[k] = np.append(self.stressors[k], v)
+        for key in stressors:
+            if key == "delta_t_days":
+                # Accumulate value
+                self.stressors[key] = np.append(self.stressors[key], stressors[key])
+                self.stressors["t_days"] = np.append(self.stressors["t_days"], self.stressors["t_days"][-1] + stressors[key])
+            elif key == "delta_efc":
+                # Accumulate value
+                self.stressors[key] = np.append(self.stressors[key], stressors[key])
+                self.stressors["efc"] = np.append(self.stressors["efc"], self.stressors["efc"][-1] + stressors[key])
+            elif key == "TdegK" or key == "soc" or key == "Ua":
+                # Average value
+                if key in self.stressors.keys():
+                    self.stressors[key] = np.append(self.stressors[key], np.mean(stressors[key]))
+            else:
+                if key in self.stressors.keys():
+                    self.stressors[key] = np.append(self.stressors[key], stressors[key])
 
         self.update_rates(stressors)
         self.update_states(stressors)
