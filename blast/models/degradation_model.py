@@ -148,10 +148,10 @@ class BatteryDegradationModel:
         if dx == 0:
             dydx = 0
         else:
-            dy = (tau*y_inf**2) / (y_inf-y0)
+            dydx = (tau*y_inf**2) / (y_inf-y0)
             # Avoid negative values (when y > y_inf)
-            if dy < 0:
-                dy = 0
+            if dydx < 0:
+                dydx = 0
         return dydx * dx
 
     # Functions to calculate voltage, half-cell potentials, or other cell specific
@@ -388,29 +388,6 @@ class BatteryDegradationModel:
             raise ValueError("All input timeseries must be the same length")
 
         stressors = self._extract_stressors(t_secs, soc, T_celsius)
-        # Unpack and store some stressors for debugging or plotting
-        delta_t_days = stressors["delta_t_days"]
-        delta_efc = stressors["delta_efc"]
-        TdegK = stressors["TdegK"]
-        soc = stressors["soc"]
-        Ua = stressors["Ua"]
-        dod = stressors["dod"]
-        Crate = stressors["Crate"]
-        t_days = self.stressors["t_days"][-1] + delta_t_days
-        efc = self.stressors["efc"][-1] + delta_efc
-        stressors_norm = np.array(
-            [
-                delta_t_days,
-                t_days,
-                delta_efc,
-                efc,
-                np.mean(TdegK),
-                np.mean(soc),
-                np.mean(Ua),
-                dod,
-                Crate,
-            ]
-        )
         for key in stressors:
             if key == "delta_t_days":
                 # Accumulate value
