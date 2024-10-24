@@ -60,10 +60,10 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
 
         # Rates: History of stressor-dependent degradation rates
         self.rates = {
-            'b1_t': np.array([np.nan]),
-            'b1_N': np.array([np.nan]),
-            'b3_t': np.array([np.nan]),
-            'b3_N': np.array([np.nan]),
+            'b1t': np.array([np.nan]),
+            'b1N': np.array([np.nan]),
+            'b3t': np.array([np.nan]),
+            'b3N': np.array([np.nan]),
         }
 
         # Expermental range: details on the range of experimental conditions, i.e.,
@@ -96,8 +96,8 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
             'b1t_1': 0.0101,
             'b1t_2': -0.0157,
             'b1t_3': 0.00835,
-            'b1t_3': -4.06E-6,
-            'b1t_4': 3.32E-5,
+            'b1t_4': -4.06E-6,
+            'b1t_5': 3.32E-5,
             'b1N_Ea_1': -58000,
             'b1N_0': 3.24,
             'b1N_1': 2.1,
@@ -117,8 +117,9 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
             'b3N_3': 0.178,          
         }
     
+    @staticmethod
     def arrhenius(TdegK, Ea):
-        return np.exp(-(Ea/8.3144)*((1/TdegK)-(1/328.15)))
+        return np.exp(-(Ea/8.3144)*((1/TdegK)-(1/298.15)))
 
     # Battery model
     def update_rates(self, stressors):
@@ -129,7 +130,7 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
         # Unpack stressors
         t_secs = stressors["t_secs"]
         delta_t_secs = t_secs[-1] - t_secs[0]
-        TdegK = stressors["TdegK"]
+        TdegK = np.mean(stressors["TdegK"])
         soc = np.mean(stressors["soc"])
         dod = stressors["dod"]
         Cchg = stressors["Cchg"]
@@ -139,16 +140,19 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
         p = self._params_life
 
         # Calculate the degradation coefficients
-        b1t = self.arrhenius(TdegK, p['b1t_Ea'])*(p['b1t_0'] + p['b1t_1']*soc + p['b1t_2']*soc**2 + p['b1t_3']*soc**3 + p['b1t_4']*soc*TdegK + p['b1t_5']*np.max([0, TdegK-328.15]))
+        b1t = self.arrhenius(TdegK, p['b1t_Ea'])*(p['b1t_0'] + p['b1t_1']*soc + p['b1t_2']*soc**2 + p['b1t_3']*soc**3 + p['b1t_4']*soc*TdegK + p['b1t_5']*np.max([0, np.mean(TdegK)-328.15]))
         b1N = np.max([0, p['b1N_0']*self.arrhenius(TdegK, p['b1N_Ea_1'])*stress*(1+p['b1N_1']*soc) + p['b1N_2']]) + p['b1N_3']*self.arrhenius(TdegK, p['b1N_Ea_2'])*(dod**6)
-        b3t = p['b3t_0'] + p['b3t_1']*(1+p['b3t_2']*soc) + p['b3t_3']*np.max([0, soc-0.3]) + p['b3t_4']*np.max([0, 0.9-soc])
-        b3N = np.max([0, p['b3N_0']*self.arrhenius(TdegK, p['b3N_Ea'])*stress*(1+p['b3N_1']*soc)+p['b3N_2']]) + p['b3N_3']*np.max([0, dod-0.85])
+        # b3t = p['b3t_0'] + p['b3t_1']*(1+p['b3t_2']*soc) + p['b3t_3']*np.max([0, soc-0.3]) + p['b3t_4']*np.max([0, 0.9-soc])
+        # b3N = np.max([0, p['b3N_0']*self.arrhenius(TdegK, p['b3N_Ea'])*stress*(1+p['b3N_1']*soc)+p['b3N_2']]) + p['b3N_3']*np.max([0, dod-0.85])
+        b3t = 0
+        b3N = 0
+        # b3N = b1t * b1N * p['b1N_4']
 
-        # Calculate time based average of each rate
-        b1t = np.trapz(b1t, x=t_secs) / delta_t_secs
-        b1N = np.trapz(b1N, x=t_secs) / delta_t_secs
-        b3t = np.trapz(b3t, x=t_secs) / delta_t_secs
-        b3N = np.trapz(b3N, x=t_secs) / delta_t_secs
+        # # Calculate time based average of each rate
+        # b1t = np.trapz(b1t, x=t_secs) / delta_t_secs
+        # b1N = np.trapz(b1N, x=t_secs) / delta_t_secs
+        # b3t = np.trapz(b3t, x=t_secs) / delta_t_secs
+        # b3N = np.trapz(b3N, x=t_secs) / delta_t_secs
 
         # Store rates
         rates = np.array([b1t, b1N, b3t, b3N])
@@ -178,8 +182,10 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
         # Capacity
         dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days, r['b1t'], 0.5)
         dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc, r['b1t']*r['b1N']*p['b1N_4'], 0.5)
-        dq_BreakIn_t = self._degradation_scalar * self._update_exponential_relax_state(states['qLoss_BreakIn_t'][-1], delta_t_days, r['b3t'], 10)
-        dq_BreakIn_EFC = self._degradation_scalar * self._update_exponential_relax_state(states['qLoss_BreakIn_EFC'][-1], delta_t_days, r['b3N'], 10)
+        # dq_BreakIn_t = self._degradation_scalar * self._update_exponential_relax_state(states['qLoss_BreakIn_t'][-1], delta_t_days, r['b3t'], 10)
+        # dq_BreakIn_EFC = self._degradation_scalar * self._update_exponential_relax_state(states['qLoss_BreakIn_EFC'][-1], delta_t_days, r['b3N'], 10)
+        dq_BreakIn_t = 0
+        dq_BreakIn_EFC = 0
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC, dq_BreakIn_t, dq_BreakIn_EFC])
