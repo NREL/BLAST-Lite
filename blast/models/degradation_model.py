@@ -36,12 +36,17 @@ class BatteryDegradationModel:
     def _update_power_state(y0: float, dx: float, k: float, p: float):
         """
         Update time-varying power state
+        Trajectory equation: y = k*x^p
+        State equation: dy = k*p*(k/y)^((1-p)/p)
 
         Args:
-            TODO Paul
+            y0 (float): current state value
+            dx (float): change of the independent variable over this timestep
+            k (float): coefficient of x^p
+            p (float): power of x
 
         Return:
-            TODO Paul
+            dy (float): the change of the state over this timestep
         """
         if y0 == 0:
             if dx == 0:
@@ -60,12 +65,19 @@ class BatteryDegradationModel:
     def _update_power_B_state(y0: float, dx: float, k: float, p: float):
         """
         Update time-varying power B state
+        Trajectory equation: y = (k*x)^p
+        State equation: 
+            z = (y^(1/p))/k
+            dy = (p*(k*z)^p)/z
 
         Args:
-            TODO Paul
+            y0 (float): current state value
+            dx (float): change of the independent variable over this timestep
+            k (float): coefficient of x
+            p (float): power of k*x
 
         Return:
-            TODO Paul
+            dy (float): the change of the state over this timestep
         """
         if y0 == 0:
             if dx == 0:
@@ -85,12 +97,22 @@ class BatteryDegradationModel:
     def _update_sigmoid_state(y0: float, dx: float, y_inf: float, k: float, p: float):
         """
         Update time-varying sigmoid state
+        Trajectory equation:
+            y = 2*y_inf*(1/2-(1/(1+exp((k*x)^p)))
+        State equation:
+            x_inv = (1/k)*log(-(2*y_inf./(y0-y_inf))-1)^(1/p)
+            z = (k*x_inv)^p
+            dy = (2*y_inf*p*exp(z)*z)/(x_inv*(exp(z)+1)^2)
 
         Args:
-            TODO Paul
+            y0 (float): current state value
+            dx (float): change of the independent variable over this timestep
+            y_inf (float): maximum extent of the sigmoid
+            k (float): 1/x of the half maximum of the sigmoid
+            p (float): curvature of the sigmoid at its half maximum
 
         Return:
-            TODO Paul
+            dy (float): the change of the state over this timestep
         """
         if y0 == 0:
             if dx == 0:
@@ -105,6 +127,31 @@ class BatteryDegradationModel:
                 x_inv = (1 / k) * ((np.log(-(2 * y_inf / (y0 - y_inf)) - 1)) ** (1 / p))
                 z = (k * x_inv) ** p
                 dydx = (2 * y_inf * p * np.exp(z) * z) / (x_inv * (np.exp(z) + 1) ** 2)
+        return dydx * dx
+    
+    @staticmethod
+    def _update_exponential_relax_state(y0: float, dx: float, y_inf: float, tau: float):
+        """
+        Update time-varying exponential relaxation state
+        Trajectory equation: y = yInf*(1-exp(-tau*x))
+        State equation: dy = (yInf^2*tau)/(yInf-y)
+
+        Args:
+            y0 (float): current state value
+            dx (float): change of the independent variable over this timestep
+            y_inf (float): maximum extent of the exponential relaxation curve
+            tau (float): time constant of the exponential relaxation curve
+
+        Return:
+            dy (float): the change of the state over this timestep
+        """
+        if dx == 0:
+            dydx = 0
+        else:
+            dy = (tau*y_inf**2) / (y_inf-y0)
+            # Avoid negative values (when y > y_inf)
+            if dy < 0:
+                dy = 0
         return dydx * dx
 
     # Functions to calculate voltage, half-cell potentials, or other cell specific
