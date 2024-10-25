@@ -9,7 +9,7 @@ authors = [
 description = "Tool to model lifetime and degradation for commercial lithium-ion batteries."
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.8,<=3.12.4"
+requires-python = ">=3.9,<=3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",

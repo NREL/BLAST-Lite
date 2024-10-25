@@ -7,7 +7,7 @@ Battery Lifetime Analysis and Simulation Toolsuite (BLAST) provides a library of
 
 ### Installation
 
-Set up and activate a Python environment (anything between Python 3.8 and 3.12):
+Set up and activate a Python environment:
 
 ```
 conda create -n blast-lite python=3.12

@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.12.4
+  - python=3.12
   - h5pyd
   - numpy<2.0.0
   - pandas
