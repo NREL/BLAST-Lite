@@ -37,7 +37,7 @@ def get_nsrdb_temperature_data(location: str = "Honolulu, Hawaii") -> pd.DataFra
         dist, pos = tree.query(lat_lon)
         return pos
 
-    loc = Nominatim(user_agent="Geopy Library")
+    loc = Nominatim(user_agent="BLAST-Lite")
     # entering the location name
     getLoc = loc.geocode(location)
     # printing address
