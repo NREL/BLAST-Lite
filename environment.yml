@@ -3,8 +3,9 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - python=3.12.4
   - h5pyd
-  - numpy
+  - numpy<2.0.0
   - pandas
   - matplotlib
   - myst-parser
