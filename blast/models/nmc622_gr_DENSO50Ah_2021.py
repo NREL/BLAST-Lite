@@ -55,6 +55,7 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
             'TdegK': np.array([np.nan]),
             'soc': np.array([np.nan]),
             'dod': np.array([np.nan]),
+            'Crate': np.array([np.nan]),
             'Cchg': np.array([np.nan]),
         }
 
@@ -133,8 +134,13 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
         TdegK = np.mean(stressors["TdegK"])
         soc = np.mean(stressors["soc"])
         dod = stressors["dod"]
+        Crate = stressors["Crate"]
         Cchg = stressors["Cchg"]
-        stress = (dod*Cchg)**0.5
+        # 0 stress on timesteps with no charge data causes issues
+        if Cchg == 0:
+            stress = (dod*Crate)**0.5
+        else:
+            stress = (dod*Cchg)**0.5
 
         # Grab parameters
         p = self._params_life
@@ -236,5 +242,6 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
                 Cchg = instantaneous_cchg[0]
             else: # half cycle with no charge segment
                 Cchg = 0
+        stressors['Crate'] = Crate
         stressors['Cchg'] = Cchg
         return stressors
