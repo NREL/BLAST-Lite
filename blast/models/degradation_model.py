@@ -302,7 +302,9 @@ class BatteryDegradationModel:
                 max_EFC_diff=breakpoints_max_EFC_diff,
             )
             # Add the final point manually if it's not there by coinkydink
-            if simulation_breakpoints[-1] != len(t_secs) - 1:
+            if simulation_breakpoints == []:
+                simulation_breakpoints.append(len(t_secs) - 1)
+            elif simulation_breakpoints[-1] != len(t_secs) - 1:
                 simulation_breakpoints.append(len(t_secs) - 1)
 
             # Simulate battery life between breakpoints until we reach the end
