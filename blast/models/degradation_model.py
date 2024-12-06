@@ -311,11 +311,11 @@ class BatteryDegradationModel:
             prior_breakpoint = 0
             for breakpoint in simulation_breakpoints:
                 self.update_battery_state(
-                    t_secs[prior_breakpoint:breakpoint],
-                    soc[prior_breakpoint:breakpoint],
-                    temperature[prior_breakpoint:breakpoint],
+                    t_secs[prior_breakpoint:breakpoint + 1],
+                    soc[prior_breakpoint:breakpoint + 1],
+                    temperature[prior_breakpoint:breakpoint + 1],
                 )
-                prior_breakpoint = breakpoint
+                prior_breakpoint = breakpoint + 1
 
     @staticmethod
     def _find_breakpoints(
