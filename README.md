@@ -84,6 +84,7 @@ A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell li
  - [Kokam NMC111-Gr battery aging data source](https://ieeexplore.ieee.org/iel7/7951530/7962914/07963578.pdf)
  - [Sanyo NMC111-Gr battery aging model source](http://dx.doi.org/10.1016/j.jpowsour.2014.02.012)
  - [LG MJ1 NMC811-GrSi battery aging data source](https://everlasting-project.eu/wp-content/uploads/2020/03/EVERLASTING_D2.3_final_20200228.pdf)
+ - [LG M50 NMC811-GrSi battery aging data source, provided by request from original authors](https://ieeexplore.ieee.org/document/9617644)
  - Models of commercially produced (> 1 GWh / yr manufacturers), large format Li-ion cells from a [2023 Journal of Energy Storage paper](https://doi.org/10.1016/j.est.2023.109042)
     - 250 Ah LFP-Gr (high energy density, very low power)
     - 75 Ah NMC-Gr 'A' (relatively high power, suitable for fast charging)

@@ -64,7 +64,6 @@ class Nmc811_GrSi_LGM50_5Ah_Battery(BatteryDegradationModel):
         self.rates = {
             'k_cal': np.array([np.nan]),
             'k_cyc': np.array([np.nan]),
-            'p_cyc': np.array([np.nan]),
         }
 
         # Expermental range: details on the range of experimental conditions, i.e.,
@@ -92,23 +91,16 @@ class Nmc811_GrSi_LGM50_5Ah_Battery(BatteryDegradationModel):
     def _params_life(self):
         return {
             # Capacity fade parameters
-            'p_cal': 0.637876353435434,
-            'q1_b0': -2.25836422099948,
-            'q1_b1': 2.30472337794488,
-            'q1_b2': -4.19298863694080,
-            'q1_b3': 0.418423177144011,
-            'q1_b4': -0.173472466016871,
-            'q4': 0.755467311373474,
-            'q3_b0': 3.22126947867990e+70,
-            'q3_b1': -24.4648676310245,
-            'q3_b2': -186.132184606326,
-            'q3_b3': 48.5227273096471,
-            'q3_b4': 107.854915710757,
-            'p_cyc_b0':	3.48011676426504e+129,
-            'p_cyc_b1':	-223.262735749431,
-            'p_cyc_b2':	-83.1491259202394,
-            'p_cyc_b3':	89.7053920930768,
-            'p_cyc_b4': 7.30252634692416,
+            'p_cal': 0.651697743905278,
+            'q1_b0': -2.39156628786525,
+            'q1_b1': 2.44205317834185,
+            'q1_b2': -4.45998246136905,
+            'q1_b3': 0.448140062203916,
+            'q1_b4': -0.185337797906876,
+            'p_cyc': 0.441996792536332,
+            'q3_b0': 0.181235015387132,
+            'q3_b1': -0.123779206033993,
+            'q3_b2': 1.24459541295018,
         }
 
     # Battery model
@@ -141,27 +133,16 @@ class Nmc811_GrSi_LGM50_5Ah_Battery(BatteryDegradationModel):
         
         k_cyc  = (
             p['q3_b0']
-            * np.exp(p['q3_b1']*TdegKN*(Cdis**0.5))
-            * np.exp(p['q3_b2']*(1/(TdegKN^2))*(Cdis**0.5))
-            * np.exp(p['q3_b3']*(1/(TdegKN^3))*Cdis)
-            * np.exp(p['q3_b4']*np.log((1/(TdegKN**2))*(Cdis**0.5)))
-        )
-
-        p_cyc = (
-            p['p_cyc_b0']
-            * np.exp(p['p_cyc_b1']*(1/TdegKN))
-            * np.exp(p['p_cyc_b2']*(1/(TdegKN**0.5))*Cdis)
-            * np.exp(p['p_cyc_b3']*np.log((1/(TdegKN**3))*(Cdis**0.5)))
-            * np.exp(p['p_cyc_b4']*(1/TdegKN)*(Cdis**3))
+            * np.exp(p['q3_b1']*(Cdis**3))
+            * np.exp(p['q3_b2']*(TdegKN**3)*(Cdis**0.5))
         )
 
         # Calculate time based average of each rate
         k_cal = np.trapz(k_cal, x=t_secs) / delta_t_secs
         k_cyc = np.trapz(k_cyc, x=t_secs) / delta_t_secs
-        p_cyc = np.trapz(p_cyc, x=t_secs) / delta_t_secs
 
         # Store rates
-        rates = np.array([k_cal, k_cyc, p_cyc])
+        rates = np.array([k_cal, k_cyc])
         for k, v in zip(self.rates.keys(), rates):
             self.rates[k] = np.append(self.rates[k], v)
     
@@ -187,7 +168,7 @@ class Nmc811_GrSi_LGM50_5Ah_Battery(BatteryDegradationModel):
         states = self.states
         # Capacity
         dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days/1e4, r['k_cal'], p['p_cal'])
-        dq_EFC = self._degradation_scalar * self._update_sigmoid_state(states['qLoss_EFC'][-1], delta_efc, r['k_cyc'], p['q4'], r['p_cyc'])
+        dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc/1e4, r['k_cyc'], p['p_cyc'])
 
         # Accumulate and store states
         dx = np.array([dq_t, dq_EFC])
@@ -238,5 +219,5 @@ class Nmc811_GrSi_LGM50_5Ah_Battery(BatteryDegradationModel):
             else: # half cycle with no charge segment
                 Cdis = 0
         stressors['Crate'] = Crate
-        stressors['Cdis'] = Cdis
+        stressors['Cdis'] = np.abs(Cdis)
         return stressors
