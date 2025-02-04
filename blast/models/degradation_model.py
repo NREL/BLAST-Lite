@@ -189,18 +189,21 @@ class BatteryDegradationModel:
         self,
         input_timeseries: Union[dict, pd.DataFrame],
         simulation_years: float = None,
+        capacity_threshold: float = None,
         is_constant_input: bool = False,
         breakpoints_max_time_diff_s: float = 86400,
         breakpoints_max_EFC_diff: float = 1,
     ):
         """
-        Run battery life simulation over the input, or repeat for the number of years specified.
+        Run battery life simulation over the input, optionally repeating for any number of years or until
+        the battery capacity falls below a certain threshold.
 
         Updates attributes self.rates, self.stressors, self.outputs, and self.states inplace.
 
         Args:
             input_timeseries (dict, pd.DataFrame)   Input time, SOC, and temperature series
             simulation_years (float)                Number of years to simulate
+            capacity_threshold (float)              Threshold capacity for stopping simulation
             is_constant_input (bool)                Whether the input is constant
             breakpoints_max_time_diff_s (float)     Max time difference for finding breakpoints
             breakpoints_max_EFC_diff (float)        Max EFC difference for finding breakpoints
@@ -239,47 +242,18 @@ class BatteryDegradationModel:
                 soc,
                 temperature,
             )
-            years_simulated = self.stressors["t_days"][-1] / 365
-            while years_simulated < simulation_years:
+            is_simulation_complete = False
+            while not is_simulation_complete:
+                if capacity_threshold is not None and self.outputs['q'][-1] < capacity_threshold:
+                    is_simulation_complete = True
+                    break
+                if simulation_years is not None and self.stressors["t_days"][-1] / 365 > simulation_years:
+                    is_simulation_complete = True
+                    break
                 self.update_battery_state_repeating()
-                years_simulated = self.stressors["t_days"][-1] / 365
+    
             return self
         else:
-            # Check if we need to tile the inputs, do it if we do
-            if (
-                simulation_years is not None
-                and t_secs[-1] < simulation_years * 365 * 24 * 3600
-            ):
-                # Check that inputs are periodic before tiling (SOC and temperatures don't change absurdly)
-                if soc[-1] - soc[0] > 0.2:
-                    raise UserWarning(
-                        f"Inputs are being tiled to simulate {simulation_years} years, big jumps between repeats may lead to unrealistic simulations. Consider using the 'make_inputs_periodic' helper function."
-                    )
-                if temperature[-1] - temperature[0] > 10:
-                    raise UserWarning(
-                        f"Inputs are being tiled to simulate {simulation_years} years, big jumps between repeats may lead to unrealistic simulations. Consider using the 'make_inputs_periodic' helper function."
-                    )
-
-                # Tile the input timeseries until it is 'simulation_years' long.
-                # When tiling time, assume the timestep between repeats is the most common timestep.
-                n_tile = np.ceil(
-                    (simulation_years * 365 * 24 * 3600) / t_secs[-1]
-                ).astype(int)
-                delta_t_secs = np.ediff1d(t_secs, to_begin=0)
-                delta_t_secs[0] = np.median(delta_t_secs)
-                delta_t_secs = np.tile(delta_t_secs, n_tile)
-                delta_t_secs[0] = 0
-                t_secs = np.cumsum(delta_t_secs)
-                soc = np.tile(soc, n_tile)
-                temperature = np.tile(temperature, n_tile)
-
-                # Cutoff once simulation is at simulation_years
-                idx_end = np.argwhere(t_secs > simulation_years * 365 * 24 * 3600)
-                idx_end = idx_end[0][0]
-                t_secs = t_secs[:idx_end]
-                soc = soc[:idx_end]
-                temperature = temperature[:idx_end]
-
             # Chunk the input timeseries into cycles (SOC turning points) using the rainflow algorithm
             cycles_generator = (
                 [span, mean, count, idx_start, idx_end]
@@ -289,6 +263,8 @@ class BatteryDegradationModel:
             for cycle in cycles_generator:
                 idx_turning_point.append(cycle[-1])
             idx_turning_point = np.array(idx_turning_point)
+            # sort turning points and remove any duplicates (sometimes full cycles and half cycles overlap)
+            idx_turning_point = np.unique(idx_turning_point)
 
             # Low DOD cycles can be extremely short, or the cycle time during long periods of storage excessively long.
             # Find breakpoints for simulating degradation, either simulating degradation when the number of EFCs between
@@ -301,21 +277,33 @@ class BatteryDegradationModel:
                 max_time_diff_s=breakpoints_max_time_diff_s,
                 max_EFC_diff=breakpoints_max_EFC_diff,
             )
-            # Add the final point manually if it's not there by coinkydink
+            # Add the final point manually if it's not there by coinkydink, or if there are no cycles in the inputs
             if simulation_breakpoints == []:
                 simulation_breakpoints.append(len(t_secs) - 1)
             elif simulation_breakpoints[-1] != len(t_secs) - 1:
                 simulation_breakpoints.append(len(t_secs) - 1)
 
-            # Simulate battery life between breakpoints until we reach the end
-            prior_breakpoint = 0
-            for breakpoint in simulation_breakpoints:
-                self.update_battery_state(
-                    t_secs[prior_breakpoint:breakpoint + 1],
-                    soc[prior_breakpoint:breakpoint + 1],
-                    temperature[prior_breakpoint:breakpoint + 1],
-                )
-                prior_breakpoint = breakpoint + 1
+            # Simulate battery life between breakpoints until we reach the end of the simulation
+            is_simulation_complete = False
+            while not is_simulation_complete:
+                prior_breakpoint = 0
+                for breakpoint in simulation_breakpoints:
+                    self.update_battery_state(
+                        t_secs[prior_breakpoint:breakpoint + 1],
+                        soc[prior_breakpoint:breakpoint + 1],
+                        temperature[prior_breakpoint:breakpoint + 1],
+                    )
+                    prior_breakpoint = breakpoint + 1
+                    if simulation_years is not None:
+                        if self.stressors["t_days"][-1] / 365 > simulation_years:
+                            is_simulation_complete = True
+                            break
+                    if capacity_threshold is not None:
+                        if self.outputs["q"][-1] < capacity_threshold:
+                            is_simulation_complete = True
+                            break
+            
+            return self
 
     @staticmethod
     def _find_breakpoints(
