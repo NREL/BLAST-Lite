@@ -1,5 +1,4 @@
 """Helper functions for fetching and formatting simulation input data."""
-
 import h5pyd
 import pandas as pd
 from scipy.spatial import cKDTree
@@ -8,6 +7,7 @@ import numpy as np
 from numpy import interp
 import importlib
 from blast.models._available_models import available_models
+from blast.utils.rainflow import reversals
 
 def simulate_all_models(*args, **kwargs):
     models = available_models()
@@ -208,3 +208,106 @@ def tile_to_one_year(df: pd.DataFrame) -> pd.DataFrame:
         df["Time_s"] = t_secs
 
     return df
+
+# TODO (Paul 2/3/2025): something is not exactly perfect but I think it's close enough
+def add_rests_to_vehicle_profile(profile, desired_efcs_per_year, show_efcs=False):
+    profile['dSOC'] = profile['SOC'].diff().fillna(0)
+    efcs = 0.5 * profile['dSOC'].abs().sum()
+    duration = profile['Time_s'].iloc[-1] - profile['Time_s'].iloc[0]
+    efcs_per_year = efcs / (duration / (24*3600*365))
+    # Add high throughput/dod events on to the end of the profile until the desired efcs per year is exceeded
+    while desired_efcs_per_year > efcs_per_year:
+        # Make a high dod event
+        high_dod = pd.DataFrame()
+        high_dod['Time_s'] = np.arange(0, 4*3600, 300)
+        high_dod['SOC'] = np.linspace(0.95, 0.1, int(4*3600/300))
+        high_dod['dSOC'] = high_dod['SOC'].diff().fillna(0)
+        high_dod['Time_s'] = high_dod['Time_s'] + profile['Time_s'].iloc[-1] + 300
+        high_dod2 = pd.DataFrame()
+        high_dod2['Time_s'] = np.arange(0, 3600, 300)
+        high_dod2['SOC'] = np.linspace(0.1, 0.7, int(3600/300))
+        high_dod2['dSOC'] = high_dod2['SOC'].diff().fillna(0)
+        high_dod2['Time_s'] = high_dod2['Time_s'] + high_dod['Time_s'].iloc[-1] + 300
+        high_dod3 = pd.DataFrame()
+        high_dod3['Time_s'] = np.arange(0, 2*3600, 300)
+        high_dod3['SOC'] = np.linspace(0.7, 0.4, int(2*3600/300))
+        high_dod3['dSOC'] = high_dod3['SOC'].diff().fillna(0)
+        high_dod3['Time_s'] = high_dod3['Time_s'] + high_dod2['Time_s'].iloc[-1] + 300
+        high_dod4 = pd.DataFrame()
+        high_dod4['Time_s'] = np.arange(0, 4*3600, 300)
+        high_dod4['SOC'] = np.linspace(0.4, 0.95, int(4*3600/300))
+        high_dod4['dSOC'] = high_dod4['SOC'].diff().fillna(0)
+        high_dod4['Time_s'] = high_dod4['Time_s'] + high_dod3['Time_s'].iloc[-1] + 300
+        # concat the high DOD event to the end of the profile
+        profile = pd.concat([profile, high_dod, high_dod2, high_dod3, high_dod4], axis=0).reset_index(drop=True)
+        # recalculate efcs
+        profile['dSOC'] = profile['SOC'].diff().fillna(0)
+        efcs = 0.5 * profile['dSOC'].abs().sum()  
+        duration = profile['Time_s'].iloc[-1] - profile['Time_s'].iloc[0]
+        efcs_per_year = efcs / (duration / (24*3600*365))
+        print('added a high throughput event')
+    
+    # Identify reversals
+    soc = profile['SOC'].to_numpy()
+    idx_reversals = []
+    for reverse in reversals(soc):
+        idx_reversals.append(reverse[0])
+    
+    # Calculate the total amount of rest time that would need to be added to the profile to make the actual EFCs per year equal to the desired EFCs per year
+    total_rest_time = duration * ((efcs_per_year / desired_efcs_per_year) - 1)
+    rest_time_per_interval = np.ceil(total_rest_time / len(idx_reversals))
+    # print(rest_time_per_interval)
+
+    # Add a rest at constant SOC (equal to the SOC at the start of the rest) to the end of each interval
+    new_row_count = 0
+    for i in range(len(idx_reversals)):
+        # print(idx_reversals[i], new_row_count, idx_reversals[i] + new_row_count, profile.shape[0])
+        if i == 0:
+            before_rest = profile.iloc[:1].copy()
+        else:
+            before_rest = profile.iloc[:idx_reversals[i] + new_row_count].copy()
+        new_rows_here = int(rest_time_per_interval / 300)
+        rest_period = pd.DataFrame({
+            'Time_s': [profile.loc[idx_reversals[i] + new_row_count, 'Time_s'] + j * 300 for j in range(1, new_rows_here + 1)],
+            'SOC': profile.loc[idx_reversals[i] + new_row_count, 'SOC'],
+            'dSOC': 0
+        })
+        after_rest = profile.iloc[idx_reversals[i] + new_row_count:]
+        new_time = profile.loc[idx_reversals[i] + new_row_count:, 'Time_s'] + rest_time_per_interval
+        # cast new_time to same dtype as 'Time_s' column
+        new_time = new_time.astype(profile['Time_s'].dtype)
+        after_rest.loc[:, 'Time_s'] = new_time
+        
+        # print(before_rest['Time_s'].to_numpy()[-1], rest_period['Time_s'].to_numpy()[0], rest_period['Time_s'].to_numpy()[-1], after_rest['Time_s'].to_numpy()[0])
+        # print(before_rest['SOC'].to_numpy()[-1], rest_period['SOC'].to_numpy()[0], rest_period['SOC'].to_numpy()[-1], after_rest['SOC'].to_numpy()[0])
+
+        new_row_count += new_rows_here
+        profile = pd.concat([before_rest, rest_period, after_rest], axis=0).reset_index(drop=True)
+        # plt.plot(profile['Time_s'] / (24*3600), profile['SOC'])
+    
+    profile['dSOC'] = profile['SOC'].diff().fillna(0)
+    if show_efcs:
+        efcs = 0.5 * profile['dSOC'].abs().sum()  
+        duration = profile['Time_s'].iloc[-1] - profile['Time_s'].iloc[0]
+        efcs_per_year = efcs / (duration / (24*3600*365))
+        print(efcs_per_year)
+    return profile
+
+def decimate_and_rescale_profile(profile, decimation_factor, tol=1e-1, show_efcs=False):
+    dSOC = profile['SOC'].diff().fillna(0)
+    efcs_original = 0.5 * dSOC.abs().sum()
+    if show_efcs:
+        print(f"Original EFCs: {efcs_original}")
+    profile = profile.iloc[::decimation_factor, :].reset_index(drop=True)
+    dSOC = profile['SOC'].diff().fillna(0)
+    efcs = 0.5 * dSOC.abs().sum()
+    while np.abs(efcs_original - efcs) > tol:
+        dSOC = dSOC * (efcs_original / efcs)
+        profile['SOC'] = np.cumsum(dSOC) + profile['SOC'].iloc[0]
+        # Ceiling SOC at 1 and floor at 0
+        profile['SOC'] = np.maximum(0, np.minimum(1, profile['SOC']))
+        dSOC = profile['SOC'].diff().fillna(0)
+        efcs = 0.5 * dSOC.abs().sum()
+    if show_efcs:
+        print(f"Decimated and rescaled EFCs: {efcs}")
+    return profile
