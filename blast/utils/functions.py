@@ -311,3 +311,20 @@ def decimate_and_rescale_profile(profile, decimation_factor, tol=1e-1, show_efcs
     if show_efcs:
         print(f"Decimated and rescaled EFCs: {efcs}")
     return profile
+
+def derate_profile(profile, derating_factor, max_soc=0.9):
+    # Derate a profile by scaling dSOC by the derating factor.
+    # If feasible, reduce max_soc as well.
+    dSOC = profile['SOC'].diff().fillna(0)
+    dSOC = dSOC * (1-derating_factor)
+    profile['SOC'] = np.cumsum(dSOC) + profile['SOC'].iloc[0]
+    if profile['SOC'].min() > (1 - max_soc) and profile['SOC'].max() > max_soc:
+        profile['SOC'] = profile['SOC'] - (profile['SOC'].max() - max_soc)
+    return profile
+
+def rescale_profile(profile, rescaling_factor):
+    # Rescale a profile by scaling dSOC by the rescaling factor.
+    dSOC = profile['SOC'].diff().fillna(0)
+    dSOC = dSOC * rescaling_factor
+    profile['SOC'] = np.cumsum(dSOC) + profile['SOC'].iloc[0]
+    return profile
