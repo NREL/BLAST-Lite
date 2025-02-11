@@ -283,10 +283,9 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
         for k, v in zip(list(self.outputs.keys()), out):
             self.outputs[k] = np.append(self.outputs[k], v)
     
-    @staticmethod
-    def _extract_stressors(t_secs, soc, T_celsius):
+    def _extract_stressors(self, t_secs, soc, T_celsius):
         # extract the usual stressors
-        stressors = BatteryDegradationModel._extract_stressors(t_secs, soc, T_celsius)
+        stressors = BatteryDegradationModel._extract_stressors(self, t_secs, soc, T_celsius)
         # model specific stressors: soc_low, soc_high, Cchg, Cdis
         soc_low = np.min(soc)
         soc_high = np.max(soc)
@@ -324,7 +323,10 @@ class NCA_GrSi_SonyMurata2p5Ah_Battery(BatteryDegradationModel):
                 Cdis = Cdis[0]
             else: # half cycle with no discharge segment
                 Cdis = 0
-        
+        # Similar to EFC, C-rate is in units of Amps/Amp*hours nominal, not percent SOC per hour, so rescale by SOH to correct units
+        Cchg = Cchg * self.outputs["q"][-1]
+        Cdis = Cdis * self.outputs["q"][-1]
+
         stressors['soc_low'] = soc_low
         stressors['soc_high'] = soc_high
         stressors['Cchg'] = Cchg

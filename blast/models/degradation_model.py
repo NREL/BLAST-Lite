@@ -1,7 +1,9 @@
 import numpy as np
 from blast.utils.rainflow import count_cycles, extract_cycles
+from blast.utils.functions import rescale_soc
 import pandas as pd
 from typing import Union
+import matplotlib.pyplot as plt
 
 
 class BatteryDegradationModel:
@@ -191,6 +193,7 @@ class BatteryDegradationModel:
         simulation_years: float = None,
         capacity_threshold: float = None,
         is_constant_input: bool = False,
+        is_conserve_energy_throughput: bool = True,
         breakpoints_max_time_diff_s: float = 86400,
         breakpoints_max_EFC_diff: float = 1,
     ):
@@ -205,6 +208,12 @@ class BatteryDegradationModel:
             simulation_years (float)                Number of years to simulate
             capacity_threshold (float)              Threshold capacity for stopping simulation
             is_constant_input (bool)                Whether the input is constant
+            is_conserve_energy_throughput (bool)    Whether to conserve energy throughput as simulation proceeds.
+                                                    This effects how the SOC profile and stressors evolve over lifetime.
+                                                    If true, energy throughput is conserved, that is, the depth-of-discharge
+                                                    will increase as the battery degrades. If false, the EFCs (i.e., energy throughput)
+                                                    of any given SOC swing will decrease. In real life, the time it takes for a cycle
+                                                    to complete would also decrease, but this is beyond scope of this package.
             breakpoints_max_time_diff_s (float)     Max time difference for finding breakpoints
             breakpoints_max_EFC_diff (float)        Max EFC difference for finding breakpoints
         """
@@ -222,7 +231,8 @@ class BatteryDegradationModel:
             raise ValueError(
                 "All numpy arrays in input_timeseries must have the same length."
             )
-        # Unpack the inputs, calculate equivalent full cycles (EFCs)
+
+        # Unpack the inputs
         if isinstance(input_timeseries, dict):
             t_secs = input_timeseries["Time_s"]
             soc = input_timeseries["SOC"]
@@ -233,6 +243,11 @@ class BatteryDegradationModel:
             temperature = input_timeseries["Temperature_C"].values
         else:
             raise TypeError("'input_timeseries' was not a dict or a Dataframe.")
+
+        # Check simulation_years and capacity_threshold
+        # If both are none, infer that we just run the simulation over the input timeseries once, so set simulation_years to t_secs[-1]
+        if simulation_years is None and capacity_threshold is None:
+            simulation_years = (t_secs[-1] - 1) / (365 *24 * 60 * 60) # 1 s threshold to make sure we cross this limit
 
         if is_constant_input:
             # Run life sim repeating until simulation is longer than simulation_years
@@ -250,7 +265,7 @@ class BatteryDegradationModel:
                 if simulation_years is not None and self.stressors["t_days"][-1] / 365 > simulation_years:
                     is_simulation_complete = True
                     break
-                self.update_battery_state_repeating()
+                self.update_battery_state_repeating(is_conserve_energy_throughput)
     
             return self
         else:
@@ -285,9 +300,22 @@ class BatteryDegradationModel:
 
             # Simulate battery life between breakpoints until we reach the end of the simulation
             is_simulation_complete = False
+            soc_original = soc.copy()
             while not is_simulation_complete:
                 prior_breakpoint = 0
+                soc = soc_original.copy()
                 for breakpoint in simulation_breakpoints:
+                    if is_conserve_energy_throughput:
+                        # Rescale SOC according to SOH to reflect changing battery performance over its life
+                        # If this isn't true, the '_extract_stressors' function will automatically decrease dEFC
+                        # by the health of the battery to reflect lower charge throughput from a cycle as the battery ages.
+                        soc_ = soc[prior_breakpoint:breakpoint + 1]
+                        soc_ = rescale_soc(soc_, 1/self.outputs["q"][-1])
+                        soc[prior_breakpoint:breakpoint + 1] = soc_
+                        if breakpoint < len(soc) - 1:
+                            soc[breakpoint + 1:] += (soc_[-1] - soc[breakpoint])
+                        # plt.plot(t_secs, soc)
+                    # Update battery state between breakpoints
                     self.update_battery_state(
                         t_secs[prior_breakpoint:breakpoint + 1],
                         soc[prior_breakpoint:breakpoint + 1],
@@ -295,7 +323,7 @@ class BatteryDegradationModel:
                     )
                     prior_breakpoint = breakpoint + 1
                     if simulation_years is not None:
-                        if self.stressors["t_days"][-1] / 365 > simulation_years:
+                        if self.stressors["t_days"][-1] / 365 >= simulation_years:
                             is_simulation_complete = True
                             break
                     if capacity_threshold is not None:
@@ -399,7 +427,7 @@ class BatteryDegradationModel:
         self.update_states(stressors)
         self.update_outputs(stressors)
 
-    def update_battery_state_repeating(self):
+    def update_battery_state_repeating(self, is_conserve_energy_throughput=True):
         """
         Update the battery states, based both on the degradation state as well as the battery performance
         at the ambient temperature, T_celsius. This function assumes battery load is repeating, i.e., stressors and
@@ -413,10 +441,20 @@ class BatteryDegradationModel:
             self.stressors["t_days"],
             self.stressors["t_days"][-1] + self.stressors["delta_t_days"][-1],
         )
-        self.stressors["efc"] = np.append(
-            self.stressors["efc"],
-            self.stressors["efc"][-1] + self.stressors["delta_efc"][-1],
-        )
+        if is_conserve_energy_throughput:
+            self.stressors["efc"] = np.append(
+                self.stressors["efc"],
+                self.stressors["efc"][-1] + self.stressors["delta_efc"][-1],
+            )
+            self.stressors["dod"] = np.append(
+                self.stressors["dod"],
+                self.stressors["dod"][1] / self.outputs["q"][-1],
+            )
+        else:
+            self.stressors["efc"] = np.append(
+                self.stressors["efc"],
+                self.stressors["efc"][-1] + self.stressors["delta_efc"][-1] * self.outputs['q'][-1],
+            )
 
         # copy end values of old stressors into a dict
         stressors = {}
@@ -460,8 +498,7 @@ class BatteryDegradationModel:
         """
         pass
 
-    @staticmethod
-    def _extract_stressors(
+    def _extract_stressors(self, 
         t_secs: np.ndarray, soc: np.ndarray, T_celsius: np.ndarray
     ) -> dict:
         """Extract stressor values including time, temperature, depth-of-discharge,
@@ -482,6 +519,8 @@ class BatteryDegradationModel:
         delta_efc = (
             np.sum(np.abs(np.ediff1d(soc, to_begin=0))) / 2
         )  # sum the total changes to SOC / 2
+        # EFC is in units of amp*hours per amp*hours nominal, not percent capacity per percent capacity nominal, so rescale by current health
+        delta_efc = delta_efc * self.outputs["q"][-1]
         dod = np.max(soc) - np.min(soc)
         abs_instantaneous_crate = np.abs(
             np.diff(soc) / np.diff(t_secs / (60 * 60))
@@ -493,6 +532,9 @@ class BatteryDegradationModel:
         # Check storage condition, which will give nan Crate:
         if np.isnan(Crate):
             Crate = 0
+        # Similar to EFC, C-rate is in units of Amps/Amp*hours nominal, not percent SOC per hour, so rescale by SOH to correct units
+        Crate = Crate * self.outputs["q"][-1]
+        # Temperature
         T_kelvin = T_celsius + 273.15
         # Estimate Ua (anode to reference potential) from SOC.
         # Uses the equation from Safari and Delacourt, https://doi.org/10.1149/1.3567007.

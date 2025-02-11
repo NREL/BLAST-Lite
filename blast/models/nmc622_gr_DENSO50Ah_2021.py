@@ -215,10 +215,9 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
         for k, v in zip(list(self.outputs.keys()), out):
             self.outputs[k] = np.append(self.outputs[k], v)
 
-    @staticmethod
-    def _extract_stressors(t_secs, soc, T_celsius):
+    def _extract_stressors(self, t_secs, soc, T_celsius):
         # extract the usual stressors
-        stressors = BatteryDegradationModel._extract_stressors(t_secs, soc, T_celsius)
+        stressors = BatteryDegradationModel._extract_stressors(self, t_secs, soc, T_celsius)
         # model specific stressors: Cchg
         t_days = t_secs / (24*60*60)
         delta_t_days = t_days[-1] - t_days[0]
@@ -242,6 +241,10 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
                 Cchg = instantaneous_cchg[0]
             else: # half cycle with no charge segment
                 Cchg = 0
+        # Similar to EFC, C-rate is in units of Amps/Amp*hours nominal, not percent SOC per hour, so rescale by SOH to correct units
+        Crate = Crate * self.outputs["q"][-1]
+        Cchg = Cchg * self.outputs["q"][-1]
+
         stressors['Crate'] = Crate
         stressors['Cchg'] = Cchg
         return stressors
