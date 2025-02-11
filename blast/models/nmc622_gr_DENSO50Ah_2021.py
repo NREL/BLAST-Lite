@@ -188,6 +188,9 @@ class Nmc622_Gr_DENSO50Ah_Battery(BatteryDegradationModel):
         # Capacity
         dq_t = self._degradation_scalar * self._update_power_state(states['qLoss_t'][-1], delta_t_days, r['b1t'], 0.5)
         dq_EFC = self._degradation_scalar * self._update_power_state(states['qLoss_EFC'][-1], delta_efc, r['b1t']*r['b1N']*p['b1N_4'], 0.5)
+        # Explodes sometimes, usually at low DOD near beginning of sim, not sure why
+        if dq_EFC > 1e-2:
+            dq_EFC = 5e-4 * delta_efc # lowish degradation rate
         # dq_BreakIn_t = self._degradation_scalar * self._update_exponential_relax_state(states['qLoss_BreakIn_t'][-1], delta_t_days, r['b3t'], 10)
         # dq_BreakIn_EFC = self._degradation_scalar * self._update_exponential_relax_state(states['qLoss_BreakIn_EFC'][-1], delta_t_days, r['b3N'], 10)
         dq_BreakIn_t = 0
