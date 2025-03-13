@@ -190,8 +190,9 @@ class BatteryDegradationModel:
     def simulate_battery_life(
         self,
         input_timeseries: Union[dict, pd.DataFrame],
-        simulation_years: float = None,
-        capacity_threshold: float = None,
+        threshold_time: float = None,
+        threshold_capacity: float = None,
+        threshold_efc: float = None,
         is_constant_input: bool = False,
         is_conserve_energy_throughput: bool = True,
         breakpoints_max_time_diff_s: float = 86400,
@@ -205,8 +206,9 @@ class BatteryDegradationModel:
 
         Args:
             input_timeseries (dict, pd.DataFrame)   Input time, SOC, and temperature series
-            simulation_years (float)                Number of years to simulate
-            capacity_threshold (float)              Threshold capacity for stopping simulation
+            threshold_time (float)                  Threshold number of years for stopping simulation
+            threshold_capacity (float)              Threshold capacity for stopping simulation
+            threshold_efc (float)                   Threshold number of equivalent full cycles for stopping simulation
             is_constant_input (bool)                Whether the input is constant
             is_conserve_energy_throughput (bool)    Whether to conserve energy throughput as simulation proceeds.
                                                     This effects how the SOC profile and stressors evolve over lifetime.
@@ -244,13 +246,13 @@ class BatteryDegradationModel:
         else:
             raise TypeError("'input_timeseries' was not a dict or a Dataframe.")
 
-        # Check simulation_years and capacity_threshold
-        # If both are none, infer that we just run the simulation over the input timeseries once, so set simulation_years to t_secs[-1]
-        if simulation_years is None and capacity_threshold is None:
-            simulation_years = (t_secs[-1] - 1) / (365 *24 * 60 * 60) # 1 s threshold to make sure we cross this limit
+        # Check stopping criteria (thresholds)
+        # If all are none, infer that we just run the simulation over the input timeseries once, so set threshold_time to t_secs[-1]
+        if threshold_time is None and threshold_capacity is None and threshold_efc is None:
+            threshold_time = (t_secs[-1] - 1) / (365 *24 * 60 * 60) # 1 s threshold to make sure we cross this limit
 
         if is_constant_input:
-            # Run life sim repeating until simulation is longer than simulation_years
+            # Run life sim repeating until simulation is longer than threshold_time
             # Only calculate stressors / degradation rates on the first timestep to dramatically accelerate the simulation
             self.update_battery_state(
                 t_secs,
@@ -259,10 +261,13 @@ class BatteryDegradationModel:
             )
             is_simulation_complete = False
             while not is_simulation_complete:
-                if capacity_threshold is not None and self.outputs['q'][-1] < capacity_threshold:
+                if threshold_time is not None and self.stressors["t_days"][-1] / 365 > threshold_time:
                     is_simulation_complete = True
                     break
-                if simulation_years is not None and self.stressors["t_days"][-1] / 365 > simulation_years:
+                if threshold_capacity is not None and self.outputs['q'][-1] < threshold_capacity:
+                    is_simulation_complete = True
+                    break
+                if threshold_efc is not None and self.stressors["efc"][-1] > threshold_efc:
                     is_simulation_complete = True
                     break
                 self.update_battery_state_repeating(is_conserve_energy_throughput)
@@ -322,14 +327,15 @@ class BatteryDegradationModel:
                         temperature[prior_breakpoint:breakpoint + 1],
                     )
                     prior_breakpoint = breakpoint + 1
-                    if simulation_years is not None:
-                        if self.stressors["t_days"][-1] / 365 >= simulation_years:
-                            is_simulation_complete = True
-                            break
-                    if capacity_threshold is not None:
-                        if self.outputs["q"][-1] < capacity_threshold:
-                            is_simulation_complete = True
-                            break
+                    if threshold_time is not None and self.stressors["t_days"][-1] / 365 > threshold_time:
+                        is_simulation_complete = True
+                        break
+                    if threshold_capacity is not None and self.outputs['q'][-1] < threshold_capacity:
+                        is_simulation_complete = True
+                        break
+                    if threshold_efc is not None and self.stressors["efc"][-1] > threshold_efc:
+                        is_simulation_complete = True
+                        break
             
             return self
 

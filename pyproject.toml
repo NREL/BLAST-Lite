@@ -1,6 +1,6 @@
 [project]
 name = "BLAST-Lite"
-version = "1.0.8"
+version = "1.0.9"
 authors = [
   { name="Paul Gasper", email="Paul.Gasper@nrel.gov" },
   { name="Nina Prakash", email="Nina.Prakash@nrel.gov" },
