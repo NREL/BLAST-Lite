@@ -338,3 +338,31 @@ def rescale_soc(soc, rescaling_factor):
         # print('Warning: rescaled SOC is outside of the range [0, 1], modified SOC will not directly reflect inputs.')
         soc = np.maximum(0, np.minimum(1, soc)) 
     return soc
+
+def simulate_battery_life_distribution(Battery, input, degradation_scalar_std=0.15, degradation_scalar_mean=1., **kwargs):
+    # Simulate the distribution of battery life from normally distributed degradation scalars.
+    # Simulations are done at -3, -2, -1, 0, 1, 2, 3 sigma. The resulting outputs from the 
+    # simulations at any non-zero sigma are resized to be the same size as the nominal simulation
+    # to allow for easy plotting.
+    sigmas = [0, -3, -2, -1, 1, 2, 3]
+    batteries_sigma = {}
+    for sigma in sigmas:
+        degradation_scalar = degradation_scalar_mean + sigma*degradation_scalar_std
+        batt = Battery(degradation_scalar=degradation_scalar)
+        batt.simulate_battery_life(input, **kwargs)
+        if sigma == 0:
+            output_len = len(batt.stressors['t_days'])
+        else:
+            outputs = batt.outputs
+            stressors = batt.stressors
+            for var in outputs:
+                outputs[var] = np.interp(np.linspace(0, len(outputs[var]), output_len), np.arange(len(outputs[var])), outputs[var])
+            for var in stressors:
+                stressors[var] = np.interp(np.linspace(0, len(stressors[var]), output_len), np.arange(len(stressors[var])), stressors[var])
+            batt.outputs = outputs
+            batt.stressors = stressors
+
+        batteries_sigma[sigma] = batt
+    
+    return batteries_sigma
+    

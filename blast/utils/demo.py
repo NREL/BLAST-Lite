@@ -17,7 +17,7 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
 
     Args:
         kind (str): One of 'synthetic', 'ev_smallbattery', 'ev_largebattery',
-        'ev_commercial', 'ev_commercial_lowdod', 'ev_commercial_lowdod_lowsoc'
+        'ev_combined', 'ev_commercial',
 
     Returns:
         dict:  Dictionary with keys {'Time_s', 'SOC', 'Temperature_C'}
@@ -27,9 +27,16 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
         "synthetic",
         "ev_smallbattery",
         "ev_largebattery",
+        "ev_combined",
         "ev_commercial",
-        "ev_commercial_lowdod",
-        "ev_commercial_lowdod_lowsoc",
+        # "Commercial BESS (NREL)",
+        # "Commercial peak shaving",
+        # "EV charging support corner station",
+        # "EV charging support rental car depot",
+        # "Frequency containment reserve",
+        # "Residential PV-BESS (CA, mild)",
+        # "Residential PV-BESS (Germany, aggressive)",
+        # "Telecom backup power and peak shaving",
     }
 
     if kind == "synthetic":
@@ -91,41 +98,28 @@ def generate_sample_data(kind: str = "synthetic") -> dict:
     elif kind == "ev_smallbattery":
         climate = pd.read_csv("climates/nsrdb_honolulu.csv")
         ev_smallbattery = pd.read_csv(
-            "application profiles/personal_ev_smallbatt.csv"
+            "application profiles/Electric vehicle/personal_ev_smallbatt.csv"
         )
-        ev_smallbattery = ev_smallbattery.iloc[
-            np.linspace(0, 24 * 3600 * 7 - 1, 24 * 7)
-        ]
         input = assemble_one_year_input(ev_smallbattery, climate)
 
     elif kind == "ev_largebattery":
         climate = pd.read_csv("climates/nsrdb_honolulu.csv")
         ev_largebattery = pd.read_csv(
-            "application profiles/personal_ev_largebatt.csv"
+            "application profiles/Electric vehicle/personal_ev_largebatt.csv"
         )
-        ev_largebattery = ev_largebattery.iloc[
-            np.linspace(0, 24 * 3600 * 7 - 1, 24 * 7)
-        ]
         input = assemble_one_year_input(ev_largebattery, climate)
+
+    elif kind == "ev_combined":
+        climate = pd.read_csv("climates/nsrdb_honolulu.csv")
+        ev_combined = pd.read_csv(
+            "application profiles/Electric vehicle/personal_ev_combined.csv"
+        )
+        input = assemble_one_year_input(ev_combined, climate)
 
     elif kind == "ev_commercial":
         climate = pd.read_csv("climates/nsrdb_honolulu.csv")
-        commercial_ev = pd.read_csv("application profiles/commercial_ev.csv")
-        commercial_ev = commercial_ev.iloc[np.linspace(0, 24 * 3600 * 7 - 1, 24 * 7)]
+        commercial_ev = pd.read_csv("application profiles/Electric vehicle/commercial_ev.csv")
         input = assemble_one_year_input(commercial_ev, climate)
-
-    elif kind == "ev_commercial_lowdod":
-        climate = pd.read_csv("climates/nsrdb_honolulu.csv")
-        commercial_ev_lowdod = pd.read_csv('application profiles/commercial_ev_lowdod.csv')
-        commercial_ev_lowdod = commercial_ev_lowdod.iloc[np.linspace(0, 24*3600*7 - 1, 24*7)]
-        input = assemble_one_year_input(commercial_ev_lowdod, climate)
-
-    elif kind == "ev_commercial_lowdod_lowsoc":
-        climate = pd.read_csv("climates/nsrdb_honolulu.csv")
-        commercial_ev_lowdod_lowsoc = pd.read_csv('application profiles/commercial_ev_lowdod.csv')
-        commercial_ev_lowdod_lowsoc = commercial_ev_lowdod_lowsoc.iloc[np.linspace(0, 24*3600*7 - 1, 24*7)]
-        commercial_ev_lowdod_lowsoc['SOC'] += -0.4
-        input = assemble_one_year_input(commercial_ev_lowdod_lowsoc, climate)
 
     else:
         raise ValueError(
