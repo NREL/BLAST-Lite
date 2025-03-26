@@ -210,7 +210,7 @@ def tile_to_one_year(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # TODO (Paul 2/3/2025): something is not exactly perfect but I think it's close enough
-def add_rests_to_vehicle_profile(profile, desired_efcs_per_year, show_efcs=False):
+def scale_vehicle_profile_to_annual_efcs(profile, desired_efcs_per_year, show_efcs=False):
     profile['dSOC'] = profile['SOC'].diff().fillna(0)
     efcs = 0.5 * profile['dSOC'].abs().sum()
     duration = profile['Time_s'].iloc[-1] - profile['Time_s'].iloc[0]
