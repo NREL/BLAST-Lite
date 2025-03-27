@@ -7,18 +7,41 @@ A wide variety of battery degradation models are provided for simulating batteri
 
 ![Example battery life predictions](assets/example_battery_life.png)
 
-Simplistic assumptions related to battery control can be easily selected. Given a state-of-charge timeseries, there are two straightforward ways this state-of-charge profile can evolve over time:
-- Conserve energy throughput, that is, increase the size of state-of-charge swings as the battery ages. Basically, as the battery degrades, the depth-of-discharge (and average state-of-charge) will decrease as the battery needs to discharge to a lower SOC to provide the same amount of energy for every discharge/charge event.
-- Maintain constant state-of-charge limits, which effectively decreases the energy-throughput per cycle as the battery ages. This is not a very common strategy, as you'd be getting less use out of the battery (it's like driving an electric vehicle fewer miles each trip as the battery degraded), but does tend to extend battery lifetime.
+In addition to the capabilities in BLAST-Lite, [NREL's Electrochemical Energy Storage group](https://www.nrel.gov/transportation/energy-storage.html) has a wide-variety of modeling and simulation tools from nano-scale to megawatt-hour system level. Please contact us for more interest in NREL's battery modeling capabilities.
 
-These assumptions are highly simplistic. The BLAST degradation modeling framework could be coupled with a more realistic battery performance model and simulated battery controllers to result in more accurate simulations, but obviously at increased computational cost and effort.
+## Simulating real-world battery use cases
+Battery degradation is a complex interplay between battery-specific degradation behaviors, battery operating strategy and controls, and environmental conditions. BLAST-Lite provides a simplified set of tools to enable exploration of battery degradation versus all of these parameters, and has pre-built tools to help evaluate the life of applications like electric vehicles and stationary energy storage systems with reasonable assumptions.
 
-![Example battery control strategies](assets/example_battery_control.png)
+### Electric vehicles
+Electric vehicle simulations are conducted after generating realistic state-of-charge profiles using NREL's [FASTSim vehicle simulation tool](https://www.nrel.gov/transportation/fastsim.html). The state-of-charge profile for an 'average' week of vehicle use can then be scaled according to annual vehicle miles traveled (VMT), using U.S. Department of Transportation data ([documented here](examples/application%20profiles/Electric%20vehicle/vehicle%20annual%20miles%20traveled%20distributions.xlsx)) to estimate the distribution of annual VMT across the U.S. population, utilizing the `scale_vehicle_profile_to_annual_efcs` function.
 
-Simple time- or capacity-based thresholds can be used to easily run simulations to specific endpoints.
+For example, the [Panasonic NCA-Gr 18650](blast/models/nca_gr_Panasonic3Ah_2018.py) battery model can be compared to real world Tesla Model 3 Long Range vehicle data (extracted from [https://tesla-info.com/](https://tesla-info.com/) YouTube videos), which used Panasonic NCA-Gr 21700 batteries from their first model year in 2018 through at least 2022. Both the distribution of annual VMT and degradation model variability need to be accounted for to match the observed distributions of capacity fade and miles driven.
 
-![Example simulation thresholds](assets/example_thesholds.png)
+![Example electric vehicle lifetime simulation](assets/ev_life_summary.png)
 
+### Stationary storage
+Stationary storage battery systems vary substantially in their design, operation, and application. Specifically, the application can have huge impacts on battery lifetime, as operations like peak shaving or backup-power have completely different battery use than operations like PV load-firming or electric vehicle charging station support. Here, we have compiled a [wide variety of stationary storage system battery applications](examples/application%20profiles).
+
+![Summary of stationary storage applications](assets/stationary_storage_summary.png)
+
+Degradation of batteries adds complexity to the sizing of battery systems for stationary storage applications, as there is a trade-off between intial cost of the battery and the degradation: oversizing a battery reduces degradation by reducing the stress on the battery to meet a given load, but the oversized battery costs more initially. However, it can be financially beneficial to oversize, if oversizing the battery results in fewer battery replacements over the working lifetime of the system. Battery degradation simulations can help make these trade-offs clear:
+
+![Optimization of stationary energy storage system size](assets/optimal_battery_sizing.png)
+
+## Caveats
+These battery models predict 'expected life', that is, battery life under nominal conditions. Many types of battery failure will not be predicted by these models:
+- Overcharge or overdischarge
+- Impact of physical damage, vibration, or humidity
+- Operating outside of manufacturer performance and environmental limits, such as voltage, temperature, and charge/discharge rate limits
+- Pack performance loss due to cell-to-cell inbalance
+
+All models are trained on accelerated aging test data. While we can accelerate the freqeuncy of cycles in the lab compared to the real world, we cannot accelerate the passage of time. Thus all models are trained on data collected over just 1-3 years, and we are extrapolating these models to predict real world lifetimes of 10+ years. As such, it is good to treat all models as qualitative. Also, over extremely long periods of time in the real-world, new bad things might happen that were not observed during accelerated aging.
+
+Aging models are generally trained on a limited amount of data, that is, there is not enough information to estimate cell-to-cell variability in degradation rates.
+Battery 'warranty life' is generally much more conservative than 'expected life'. 
+These models are estimating cell level degradation, there will be additional performance penalties and caveats for estimating lifetime of battery packs. A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell lifetime, but when using life models trained on cell testing data, as all models here are, please support simulations of pack level degradation with pack level data if you have it.
+
+## Setup and quick-start
 ### Installation
 
 Set up and activate a Python environment:
@@ -69,19 +92,30 @@ cell = models.Lfp_Gr_250AhPrismatic()
 cell.simulate_battery_life(data)
 ```
 
-### Caveats
-These battery models predict 'expected life', that is, battery life under nominal conditions. Many types of battery failure will not be predicted by these models:
-- Overcharge or overdischarge
-- Impact of physical damage, vibration, or humidity
-- Operating outside of manufacturer performance and environmental limits, such as voltage, temperature, and charge/discharge rate limits
-- Pack performance loss due to cell-to-cell inbalance
+See the various example files for more detail on the different capabilities in BLAST-Lite:
+- [Broad overview of capabilities and tools](examples/example.ipynb)
+- [Running simplified but extremely fast simulations](examples/example_fast_calculations.ipynb)
+- [Simulation of electric vehicle lifetime](examples/example_EV_life.ipynb)
+- [Simulation and analysis of stationary storage batteries](examples/example_stationary_storage_life.ipynb)
 
-Aging models are generally trained on a limited amount of data, that is, there is not enough information to estimate cell-to-cell variability in degradation rates.
-Battery 'warranty life' is generally much more conservative than 'expected life'. 
-These models are estimating cell level degradation, there will be additional performance penalties and caveats for estimating lifetime of battery packs. 
-A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell lifetime, but please support model simulations with data if you have it.
+## Simulation details
+Simplistic assumptions related to battery control can be easily selected. Given a state-of-charge timeseries, there are two straightforward ways this state-of-charge profile can evolve over time:
+- Conserve energy throughput, that is, increase the size of state-of-charge swings as the battery ages. Basically, as the battery degrades, the depth-of-discharge (and average state-of-charge) will decrease as the battery needs to discharge to a lower SOC to provide the same amount of energy for every discharge/charge event.
+- Maintain constant state-of-charge limits, which effectively decreases the energy-throughput per cycle as the battery ages. This is not a very common strategy, as you'd be getting less use out of the battery (it's like driving an electric vehicle fewer miles each trip as the battery degraded), but does tend to extend battery lifetime.
 
-### Citations
+These assumptions are highly simplistic. The BLAST degradation modeling framework could be coupled with a more realistic battery performance model and simulated battery controllers to result in more accurate simulations, but obviously at increased computational cost and effort.
+
+![Example battery control strategies](assets/example_battery_control.png)
+
+Simple time-, capacity-, or charge-throughput based thresholds can be used to easily run simulations to specific endpoints.
+
+![Example simulation thresholds](assets/example_thesholds.png)
+
+While we do not have the data to model every single type of battery, it is easy to scale any model in BLAST-Lite to have faster or slower degradation via the optional `degradation_scalar` input when instantiating a model. Varying the `degradation_scalar` also can quickly tune any model to capture the variability of degradation observed in the real world or during testing, with the helper function `simulate_battery_life_distribution` available to make this quick and easy.
+
+![Example simulation with uncertainty](assets/example_uncertainty.png)
+
+## Citations
  - Sony Murata LFP-Gr battery aging data and model
      - [Calendar aging data source](https://doi.org/10.1016/j.est.2018.01.019)
      - [Cycle aging data source](https://doi.org/10.1016/j.jpowsour.2019.227666)
@@ -107,6 +141,7 @@ A good rule-of-thumb is to assume that pack lifetime is 20-30% less than cell li
  - [DENSO NMC622-Gr battery aging model source](https://iopscience.iop.org/article/10.1149/1945-7111/ac2ebd)
  - Stationary storage battery use profiles are [provided open-source](https://dataserv.ub.tum.de/index.php/s/m1510254) by [Kucevic et al](https://www.sciencedirect.com/science/article/pii/S2352152X19309016)
  - Electric vehicle battery use profiles were generated using NREL's [FASTSim tool](https://www.nrel.gov/transportation/fastsim.html).
+ - Some stationary storage battery use profiles were generated using NREL simulation tools: [REopt](https://reopt.nrel.gov/tool), [System Advisor Model](https://sam.nrel.gov/), [EVI-EDGES](https://www.nrel.gov/transportation/evi-edges.html)
 
 ### Authors
 Paul Gasper, Nina Prakash, Kandler Smith
