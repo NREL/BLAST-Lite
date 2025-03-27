@@ -7,7 +7,7 @@ A wide variety of battery degradation models are provided for simulating batteri
 
 ![Example battery life predictions](assets/example_battery_life.png)
 
-In addition to the capabilities in BLAST-Lite, [NREL's Electrochemical Energy Storage group](https://www.nrel.gov/transportation/energy-storage.html) has a wide-variety of modeling and simulation tools from nano-scale to megawatt-hour system level. Please contact us for more interest in NREL's battery modeling capabilities.
+In addition to the capabilities in BLAST-Lite, [NREL's Electrochemical Energy Storage group](https://www.nrel.gov/transportation/energy-storage.html) has a wide-variety of modeling and simulation tools from nano-scale to megawatt-hour system level. Please contact us if you have further interest in NREL's battery modeling capabilities: <a href="mailto:Paul.Gasper\@nrel.gov">Paul.Gasper\@nrel.gov</a>, <a href="mailto:Kandler.Smith\@nrel.gov">Kandler.Smith\@nrel.gov</a>.
 
 ## Simulating real-world battery use cases
 Battery degradation is a complex interplay between battery-specific degradation behaviors, battery operating strategy and controls, and environmental conditions. BLAST-Lite provides a simplified set of tools to enable exploration of battery degradation versus all of these parameters, and has pre-built tools to help evaluate the life of applications like electric vehicles and stationary energy storage systems with reasonable assumptions.
