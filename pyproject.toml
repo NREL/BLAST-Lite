@@ -1,6 +1,6 @@
 [project]
 name = "BLAST-Lite"
-version = "1.0.9"
+version = "1.1.0"
 authors = [
   { name="Paul Gasper", email="Paul.Gasper@nrel.gov" },
   { name="Nina Prakash", email="Nina.Prakash@nrel.gov" },
@@ -41,6 +41,9 @@ include = [
     "blast*",
 ] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
+
+[tool.setuptools]
+license-files = []
 
 [build-system]
 requires = ["setuptools>=61.0"]
