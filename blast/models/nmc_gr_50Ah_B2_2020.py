@@ -116,7 +116,7 @@ class NMC_Gr_50Ah_B2(BatteryDegradationModel):
         Ua = stressors["Ua"]
         dod = stressors["dod"]
         Crate = stressors["Crate"]
-        TdegKN = TdegK / (293.15 + 35)
+        TdegKN = TdegK / (273.15 + 35)
         UaN = Ua / 0.123 # Ua at about 50% SOC
 
         # Grab parameters

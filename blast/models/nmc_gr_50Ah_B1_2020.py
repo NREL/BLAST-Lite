@@ -114,7 +114,7 @@ class NMC_Gr_50Ah_B1(BatteryDegradationModel):
         Ua = stressors["Ua"]
         dod = stressors["dod"]
         Crate = stressors["Crate"]
-        TdegKN = TdegK / (293.15 + 35)
+        TdegKN = TdegK / (273.15 + 35)
         UaN = Ua / 0.123 # Ua at about 50% SOC
 
         # Grab parameters
@@ -124,8 +124,11 @@ class NMC_Gr_50Ah_B1(BatteryDegradationModel):
         kcal = (p['p1']
             * np.exp(p['p2']*(1/(TdegKN**3)) * (UaN**(1/3))))
 
-        kcyc = np.abs(p['p3']
-                * ((dod**2)*(TdegKN**3)*(Crate**0.5))**p['p4'])
+        kcyc = np.abs(
+            p['p3']
+            * (
+                (dod**2)*(TdegKN**3)*(Crate**0.5)
+              )**p['p4'])
         
         # Calculate time based average of each rate
         kcal = np.trapz(kcal, x=t_secs) / delta_t_secs
