@@ -143,6 +143,14 @@ While we do not have the data to model every single type of battery, it is easy 
  - Electric vehicle battery use profiles were generated using NREL's [FASTSim tool](https://www.nrel.gov/transportation/fastsim.html).
  - Some stationary storage battery use profiles were generated using NREL simulation tools: [REopt](https://reopt.nrel.gov/tool), [System Advisor Model](https://sam.nrel.gov/), [EVI-EDGES](https://www.nrel.gov/transportation/evi-edges.html)
 
+### Acknowledgements
+Funding provided by U.S. Department of Energy Vehicle Technologies Office.
+
+Special thanks to some keen-eyed users who noticed mistakes to correct:
+- Adam Thelen
+- Llejlla Gusinjac
+- Corey Randall
+
 ### Authors
 Paul Gasper, Nina Prakash, Kandler Smith
 
