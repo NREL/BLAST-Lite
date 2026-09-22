@@ -47,9 +47,9 @@ class BatteryDegradationModel:
             k (float): coefficient of x^p
             p (float): power of x
 
-        Return:
-            dy (float): the change of the state over this timestep
+        Return:            dy (float): the change of the state over this timestep
         """
+        y0, dx, k, p = float(y0), float(dx), float(k), float(p)
         if y0 == 0:
             if dx == 0:
                 dydx = 0
@@ -78,9 +78,9 @@ class BatteryDegradationModel:
             k (float): coefficient of x
             p (float): power of k*x
 
-        Return:
-            dy (float): the change of the state over this timestep
+        Return:            dy (float): the change of the state over this timestep
         """
+        y0, dx, k, p = float(y0), float(dx), float(k), float(p)
         if y0 == 0:
             if dx == 0:
                 dydx = 0
@@ -113,9 +113,9 @@ class BatteryDegradationModel:
             k (float): 1/x of the half maximum of the sigmoid
             p (float): curvature of the sigmoid at its half maximum
 
-        Return:
-            dy (float): the change of the state over this timestep
+        Return:            dy (float): the change of the state over this timestep
         """
+        y0, dx, y_inf, k, p = float(y0), float(dx), float(y_inf), float(k), float(p)
         if y0 == 0:
             if dx == 0:
                 dydx = 0
@@ -144,9 +144,9 @@ class BatteryDegradationModel:
             y_inf (float): maximum extent of the exponential relaxation curve
             tau (float): time constant of the exponential relaxation curve
 
-        Return:
-            dy (float): the change of the state over this timestep
+        Return:            dy (float): the change of the state over this timestep
         """
+        y0, dx, y_inf, tau = float(y0), float(dx), float(y_inf), float(tau)
         if dx == 0:
             dydx = 0
         else:
@@ -171,11 +171,11 @@ class BatteryDegradationModel:
 
         Return:
             Ua
-        """
-        # Calculate lithiation fraction from soc
+        """        # Calculate lithiation fraction from soc
         def get_Xa(soc):
             return 8.5 * 10**-3 + soc * (0.78 - 8.5 * 10**-3)
 
+        soc = np.asarray(soc, dtype=float)
         Xa = get_Xa(soc)
         # Calculate Ua from lithiation fraction
         return (
@@ -232,9 +232,7 @@ class BatteryDegradationModel:
         if len(set(lengths)) != 1:
             raise ValueError(
                 "All numpy arrays in input_timeseries must have the same length."
-            )
-
-        # Unpack the inputs
+            )        # Unpack the inputs
         if isinstance(input_timeseries, dict):
             t_secs = input_timeseries["Time_s"]
             soc = input_timeseries["SOC"]
@@ -245,6 +243,11 @@ class BatteryDegradationModel:
             temperature = input_timeseries["Temperature_C"].values
         else:
             raise TypeError("'input_timeseries' was not a dict or a Dataframe.")
+
+        # Cast the inputs to numpy arrays of floats to ensure consistent numeric behavior
+        t_secs = np.asarray(t_secs, dtype=float)
+        soc = np.asarray(soc, dtype=float)
+        temperature = np.asarray(temperature, dtype=float)
 
         # Check stopping criteria (thresholds)
         # If all are none, infer that we just run the simulation over the input timeseries once, so set threshold_time to t_secs[-1]
@@ -399,9 +402,7 @@ class BatteryDegradationModel:
             soc (np.ndarray):       Vector of the state-of-charge of the battery at each t_sec
             T_celsius (ndarray)     Temperature of the battery during this time period, in Celsius units.
 
-        """
-
-        # Check some input types:
+        """        # Check some input types:
         if not isinstance(t_secs, np.ndarray):
             raise TypeError('Input "t_secs" must be a numpy.ndarray')
         if not isinstance(soc, np.ndarray):
@@ -410,6 +411,11 @@ class BatteryDegradationModel:
             raise TypeError('Input "T_celsius" must be a numpy.ndarray')
         if not (len(t_secs) == len(soc) and len(t_secs) == len(T_celsius)):
             raise ValueError("All input timeseries must be the same length")
+
+        # Cast the inputs to numpy arrays of floats to ensure consistent numeric behavior
+        t_secs = np.asarray(t_secs, dtype=float)
+        soc = np.asarray(soc, dtype=float)
+        T_celsius = np.asarray(T_celsius, dtype=float)
 
         stressors = self._extract_stressors(t_secs, soc, T_celsius)
         for key in stressors:
@@ -515,10 +521,14 @@ class BatteryDegradationModel:
             soc (np.ndarray)        Array of SOC
             T_celsius (np.ndarray)  Array of temperatures in C
 
-        Return:
-            stressors (dict)        Dictionary of stressor values.
+        Return:            stressors (dict)        Dictionary of stressor values.
 
         """
+        # Cast the inputs to numpy arrays of floats to ensure consistent numeric behavior
+        t_secs = np.asarray(t_secs, dtype=float)
+        soc = np.asarray(soc, dtype=float)
+        T_celsius = np.asarray(T_celsius, dtype=float)
+
         # Extract stressors
         t_days = t_secs / (24 * 60 * 60)
         delta_t_days = t_days[-1] - t_days[0]

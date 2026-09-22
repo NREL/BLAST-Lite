@@ -6,6 +6,7 @@ from geopy.geocoders import Nominatim
 import numpy as np
 from numpy import interp
 import importlib
+from typing import Union
 from blast.models._available_models import available_models
 from blast.utils.rainflow import reversals
 
@@ -105,15 +106,13 @@ def make_inputs_periodic(
     if len(set(lengths)) != 1:
         raise ValueError(
             "All numpy arrays in input_timeseries must have the same length."
-        )
-
-    # Extract arrays from input_timeseries
-    t_secs = input_timeseries["Time_s"]
-    temperature = input_timeseries["Temperature_C"]
-    soc = input_timeseries["SOC"]
+        )    # Extract arrays from input_timeseries
+    t_secs = np.asarray(input_timeseries["Time_s"], dtype=float)
+    temperature = np.asarray(input_timeseries["Temperature_C"], dtype=float)
+    soc = np.asarray(input_timeseries["SOC"], dtype=float)
 
     # Convert interp_time_window_hours to seconds
-    interp_time_window_secs = interp_time_window_hours * 3600.0
+    interp_time_window_secs = float(interp_time_window_hours) * 3600.0
 
     # Identify the range of indices to interpolate
     end_time = t_secs[-1]
@@ -150,12 +149,13 @@ def assemble_one_year_input(
 
     Return:
         pd.DataFrame:  Combined DataFrame with time, soc, and temperature columns.
-    """
-    # Check if 'Time_s' column exists in both data frames
+    """    # Check if 'Time_s' column exists in both data frames
     if "Time_s" not in soc.columns:
         raise ValueError("soc dataframe does not contain 'Time_s' column.")
     if "Time_s" not in climate.columns:
         raise ValueError("climate dataframe does not contain 'Time_s' column.")
+    # Cast time_interval to ensure consistent numeric behavior
+    time_interval = int(time_interval)
     # Make each data frame one year long
     soc = tile_to_one_year(soc)
     climate = tile_to_one_year(climate)
@@ -210,7 +210,10 @@ def tile_to_one_year(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # TODO (Paul 2/3/2025): something is not exactly perfect but I think it's close enough
-def scale_vehicle_profile_to_annual_efcs(profile, desired_efcs_per_year, show_efcs=False):
+def scale_vehicle_profile_to_annual_efcs(
+    profile: pd.DataFrame, desired_efcs_per_year: float, show_efcs: bool = False
+) -> pd.DataFrame:
+    desired_efcs_per_year = float(desired_efcs_per_year)
     profile['dSOC'] = profile['SOC'].diff().fillna(0)
     efcs = 0.5 * profile['dSOC'].abs().sum()
     duration = profile['Time_s'].iloc[-1] - profile['Time_s'].iloc[0]
@@ -293,7 +296,14 @@ def scale_vehicle_profile_to_annual_efcs(profile, desired_efcs_per_year, show_ef
         print(efcs_per_year)
     return profile
 
-def decimate_and_rescale_profile(profile, decimation_factor, tol=1e-1, show_efcs=False):
+def decimate_and_rescale_profile(
+    profile: pd.DataFrame,
+    decimation_factor: int,
+    tol: float = 1e-1,
+    show_efcs: bool = False,
+) -> pd.DataFrame:
+    decimation_factor = int(decimation_factor)
+    tol = float(tol)
     dSOC = profile['SOC'].diff().fillna(0)
     efcs_original = 0.5 * dSOC.abs().sum()
     if show_efcs:
@@ -312,9 +322,13 @@ def decimate_and_rescale_profile(profile, decimation_factor, tol=1e-1, show_efcs
         print(f"Decimated and rescaled EFCs: {efcs}")
     return profile
 
-def derate_profile(profile, derating_factor, max_soc=0.9):
+def derate_profile(
+    profile: pd.DataFrame, derating_factor: float, max_soc: float = 0.9
+) -> pd.DataFrame:
     # Derate a profile by scaling dSOC by the derating factor.
     # If feasible, reduce max_soc as well.
+    derating_factor = float(derating_factor)
+    max_soc = float(max_soc)
     dSOC = profile['SOC'].diff().fillna(0)
     dSOC = dSOC * (1-derating_factor)
     profile['SOC'] = np.cumsum(dSOC) + profile['SOC'].iloc[0]
@@ -322,15 +336,19 @@ def derate_profile(profile, derating_factor, max_soc=0.9):
         profile['SOC'] = profile['SOC'] - (profile['SOC'].max() - max_soc)
     return profile
 
-def rescale_profile(profile, rescaling_factor):
+def rescale_profile(profile: pd.DataFrame, rescaling_factor: float) -> pd.DataFrame:
     # Rescale a profile by scaling dSOC by the rescaling factor.
+    rescaling_factor = float(rescaling_factor)
     dSOC = profile['SOC'].diff().fillna(0)
     dSOC = dSOC * rescaling_factor
     profile['SOC'] = np.cumsum(dSOC) + profile['SOC'].iloc[0]
     return profile
 
-def rescale_soc(soc, rescaling_factor):
+def rescale_soc(soc: np.ndarray, rescaling_factor: float) -> np.ndarray:
     # Rescale an soc vector by scaling dSOC by the rescaling factor.
+    # Cast inputs to ensure consistent numeric behavior
+    soc = np.asarray(soc, dtype=float)
+    rescaling_factor = float(rescaling_factor)
     dSOC = np.diff(soc, prepend=soc[0])
     dSOC = dSOC * rescaling_factor
     soc = np.cumsum(dSOC) + soc[0]
@@ -339,11 +357,19 @@ def rescale_soc(soc, rescaling_factor):
         soc = np.maximum(0, np.minimum(1, soc)) 
     return soc
 
-def simulate_battery_life_distribution(Battery, input, degradation_scalar_std=0.15, degradation_scalar_mean=1., **kwargs):
+def simulate_battery_life_distribution(
+    Battery,
+    input: Union[dict, pd.DataFrame],
+    degradation_scalar_std: float = 0.15,
+    degradation_scalar_mean: float = 1.0,
+    **kwargs,
+) -> dict:
     # Simulate the distribution of battery life from normally distributed degradation scalars.
     # Simulations are done at -3, -2, -1, 0, 1, 2, 3 sigma. The resulting outputs from the 
     # simulations at any non-zero sigma are resized to be the same size as the nominal simulation
     # to allow for easy plotting.
+    degradation_scalar_std = float(degradation_scalar_std)
+    degradation_scalar_mean = float(degradation_scalar_mean)
     sigmas = [0, -3, -2, -1, 1, 2, 3]
     batteries_sigma = {}
     for sigma in sigmas:
