@@ -279,6 +279,12 @@ class Lfp_Gr_SonyMurata3Ah_Battery(BatteryDegradationModel):
         q_BreakIn_EFC = 1 - states['qLoss_BreakIn_EFC'][-1]
         q = 1 - states['qLoss_LLI_t'][-1] - states['qLoss_LLI_EFC'][-1] - states['qLoss_BreakIn_EFC'][-1]
         
+        if np.isnan(q):
+            print(stressors)
+            print([[state, self.states[state][-1]] for state in self.states.keys()])
+            print([[rate, self.rates[rate][-1]] for rate in self.rates.keys()])
+            raise ValueError("Capacity is NaN. Check the stressors and rates for invalid values.")
+
         # Resistance
         r_LLI_t = 1 + states['rGain_LLI_t'][-1]
         r_LLI_EFC = 1 + states['rGain_LLI_EFC'][-1]

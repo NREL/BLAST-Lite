@@ -129,6 +129,9 @@ class BatteryDegradationModel:
                 x_inv = (1 / k) * ((np.log(-(2 * y_inf / (y0 - y_inf)) - 1)) ** (1 / p))
                 z = (k * x_inv) ** p
                 dydx = (2 * y_inf * p * np.exp(z) * z) / (x_inv * (np.exp(z) + 1) ** 2)
+                if np.isnan(dydx):
+                    dydx = 0
+                    print("Warning: dydx is NaN; setting to 0")
         return dydx * dx
     
     @staticmethod
@@ -511,7 +514,7 @@ class BatteryDegradationModel:
         pass
 
     def _extract_stressors(self, 
-        t_secs: np.ndarray, soc: np.ndarray, T_celsius: np.ndarray
+        t_secs: np.ndarray, soc: np.ndarray, T_celsius: np.ndarray, rescale_by_soh: bool = True
     ) -> dict:
         """Extract stressor values including time, temperature, depth-of-discharge,
         temperature, Ua, C-rate, and cycles.
@@ -535,8 +538,9 @@ class BatteryDegradationModel:
         delta_efc = (
             np.sum(np.abs(np.ediff1d(soc, to_begin=0))) / 2
         )  # sum the total changes to SOC / 2
-        # EFC is in units of amp*hours per amp*hours nominal, not percent capacity per percent capacity nominal, so rescale by current health
-        delta_efc = delta_efc * self.outputs["q"][-1]
+        if rescale_by_soh:
+            # EFC is in units of amp*hours per amp*hours nominal, not percent capacity per percent capacity nominal, so rescale by current health
+            delta_efc = delta_efc * self.outputs["q"][-1]
         dod = np.max(soc) - np.min(soc)
         abs_instantaneous_crate = np.abs(
             np.diff(soc) / np.diff(t_secs / (60 * 60))
@@ -548,8 +552,9 @@ class BatteryDegradationModel:
         # Check storage condition, which will give nan Crate:
         if np.isnan(Crate):
             Crate = 0
-        # Similar to EFC, C-rate is in units of Amps/Amp*hours nominal, not percent SOC per hour, so rescale by SOH to correct units
-        Crate = Crate * self.outputs["q"][-1]
+        if rescale_by_soh:
+            # Similar to EFC, C-rate is in units of Amps/Amp*hours nominal, not percent SOC per hour, so rescale by SOH to correct units
+            Crate = Crate * self.outputs["q"][-1]
         # Temperature
         T_kelvin = T_celsius + 273.15
         # Estimate Ua (anode to reference potential) from SOC.
