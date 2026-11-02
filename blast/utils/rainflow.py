@@ -2,10 +2,13 @@
 
 from __future__ import division
 from collections import deque, defaultdict
+from typing import Callable, Iterable, Iterator, Optional, Tuple
 import math
 
 
-def _get_round_function(ndigits=None):
+def _get_round_function(ndigits: Optional[int] = None) -> Callable[[float], float]:
+    if ndigits is not None:
+        ndigits = int(ndigits)
     if ndigits is None:
 
         def func(x):
@@ -19,7 +22,7 @@ def _get_round_function(ndigits=None):
     return func
 
 
-def reversals(series):
+def reversals(series: Iterable[float]) -> Iterator[Tuple[int, float]]:
     """Iterate reversal points in the series.
     A reversal point is a point in the series at which the first derivative
     changes sign. Reversal is undefined at the first (last) point because the
@@ -32,7 +35,8 @@ def reversals(series):
     ------
     Reversal points as tuples (index, value).
     """
-    series = iter(series)
+    # Cast each value to float to ensure consistent numeric behavior
+    series = (float(x) for x in series)
 
     x_last, x = next(series, None), next(series, None)
     if x_last is None or x is None:
@@ -55,7 +59,7 @@ def reversals(series):
         yield index + 1, x_next
 
 
-def extract_cycles(series):
+def extract_cycles(series: Iterable[float]) -> Iterator[Tuple[float, float, float, int, int]]:
     """Iterate cycles in the series.
     Parameters
     ----------
@@ -106,7 +110,12 @@ def extract_cycles(series):
             points.popleft()
 
 
-def count_cycles(series, ndigits=None, nbins=None, binsize=None):
+def count_cycles(
+    series: Iterable[float],
+    ndigits: Optional[int] = None,
+    nbins: Optional[int] = None,
+    binsize: Optional[float] = None,
+) -> list:
     """Count cycles in the series.
 
     Args:
@@ -126,6 +135,15 @@ def count_cycles(series, ndigits=None, nbins=None, binsize=None):
     """
     if sum(value is not None for value in (ndigits, nbins, binsize)) > 1:
         raise ValueError("Arguments ndigits, nbins and binsize are mutually exclusive")
+
+    # Cast inputs to ensure consistent numeric behavior
+    series = [float(x) for x in series]
+    if ndigits is not None:
+        ndigits = int(ndigits)
+    if nbins is not None:
+        nbins = int(nbins)
+    if binsize is not None:
+        binsize = float(binsize)
 
     counts = defaultdict(float)
     cycles = (
